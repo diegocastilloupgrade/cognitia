@@ -1,0 +1,14 @@
+schema: spec-driven
+
+language: es
+agent:
+  name: copilot
+project:
+  name: COGNITIA
+  description: Sistema de cribado para deterioro cognitivo a través de un terapeuta digital basado en técnicas de IA y procesado de lenguaje natural
+specs:
+  root: "./openspec/specs"
+changes:
+  root: "./openspec/changes"
+archive:
+  root: "./openspec/archive"
