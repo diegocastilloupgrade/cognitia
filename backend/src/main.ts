@@ -1,23 +1,18 @@
-import { loadEnv } from "./config/env";
-import { createModules } from "./modules";
-import { logInfo } from "./shared/logger";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import { apiRouter } from "./modules";
 
-function bootstrap(): void {
-  const env = loadEnv();
-  const modules = createModules();
+dotenv.config();
 
-  logInfo("Backend skeleton initialized", {
-    nodeEnv: env.nodeEnv,
-    port: env.port,
-    modules: {
-      auth: modules.auth.name,
-      patients: modules.patients.name,
-      sessions: modules.sessions.name,
-      results: modules.results.name,
-      execution: modules.execution.name,
-      unithMode: modules.integrations.unith.mode,
-    },
-  });
-}
+const app = express();
+const port = Number(process.env.PORT ?? 3000);
 
-bootstrap();
+app.use(cors());
+app.use(express.json());
+
+app.use("/api", apiRouter);
+
+app.listen(port, () => {
+  console.log(`COGNITIA backend listening on http://localhost:${port}`);
+});

@@ -1,21 +1,18 @@
-import { createAuthModule } from "./auth";
-import { createExecutionModule } from "./execution";
-import { createUnithIntegrationModule } from "./integrations/unith";
-import { createPatientsModule } from "./patients";
-import { createResultsModule } from "./results";
-import { createSessionsModule } from "./sessions";
+import { Router } from "express";
+import { authRouter } from "./auth";
+import { executionRouter } from "./execution";
+import { patientsRouter } from "./patients";
+import { resultsRouter } from "./results";
+import { sessionsRouter } from "./sessions";
 
-export function createModules() {
-  return {
-    auth: createAuthModule(),
-    patients: createPatientsModule(),
-    sessions: createSessionsModule(),
-    results: createResultsModule(),
-    execution: createExecutionModule(),
-    integrations: {
-      unith: createUnithIntegrationModule(),
-    },
-  };
-}
+export const apiRouter = Router();
 
-export type AppModules = ReturnType<typeof createModules>;
+apiRouter.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+apiRouter.use("/auth", authRouter);
+apiRouter.use("/patients", patientsRouter);
+apiRouter.use("/sessions", sessionsRouter);
+apiRouter.use("/results", resultsRouter);
+apiRouter.use("/execution", executionRouter);

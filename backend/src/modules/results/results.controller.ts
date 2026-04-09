@@ -4,7 +4,7 @@ import type { CreateResultInput } from "./results.types";
 export class ResultsController {
   constructor(private readonly resultsService: ResultsService) {}
 
-  listBySession(sessionId: string) {
+  listBySession(sessionId: number) {
     return this.resultsService.listBySession(sessionId);
   }
 
