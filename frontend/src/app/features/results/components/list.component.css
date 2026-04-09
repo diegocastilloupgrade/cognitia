@@ -1,0 +1,61 @@
+/* Results List Component Styles */
+.results-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.results-table thead {
+  background-color: #f8f9fa;
+}
+
+.results-table th,
+.results-table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+
+.results-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.score {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.score.high {
+  color: #28a745;
+}
+
+.score.medium {
+  color: #ffc107;
+}
+
+.score.low {
+  color: #dc3545;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status.completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}

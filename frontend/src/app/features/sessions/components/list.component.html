@@ -1,0 +1,19 @@
+<div class="sessions-container">
+  <h2>Sessions</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Patient ID</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let session of sessions">
+        <td>{{ session.id }}</td>
+        <td>{{ session.patientId }}</td>
+        <td>{{ session.status }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

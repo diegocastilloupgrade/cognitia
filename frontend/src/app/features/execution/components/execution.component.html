@@ -1,0 +1,8 @@
+<div class="execution-container">
+  <h2>Execution</h2>
+  <div class="status" [class.running]="isRunning">
+    Status: {{ isRunning ? 'Running' : 'Stopped' }}
+  </div>
+  <button (click)="startExecution()" [disabled]="isRunning">Start</button>
+  <button (click)="stopExecution()" [disabled]="!isRunning">Stop</button>
+</div>

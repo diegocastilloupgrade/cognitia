@@ -1,0 +1,21 @@
+<div class="results-container">
+  <h2>Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Session ID</th>
+        <th>Score</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let result of results">
+        <td>{{ result.id }}</td>
+        <td>{{ result.sessionId }}</td>
+        <td>{{ result.score }}</td>
+        <td>{{ result.createdAt }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
