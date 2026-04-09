@@ -1,15 +1,124 @@
-import { SessionsController } from "./sessions.controller";
-import { SessionsService } from "./sessions.service";
+import { Router } from "express";
+import type { CreateSessionDto, ScreeningSession } from "./sessions.types";
 
-export function createSessionsModule() {
-  const service = new SessionsService();
-  const controller = new SessionsController(service);
+export const sessionsRouter = Router();
 
-  return {
-    name: "sessions",
-    service,
-    controller,
-  };
+const sessions: ScreeningSession[] = [];
+let nextSessionId = 1;
+
+function parseId(value: string): number {
+  return Number(value);
 }
 
-export type SessionsModule = ReturnType<typeof createSessionsModule>;
+sessionsRouter.get("/", (_req, res) => {
+  res.json(sessions);
+});
+
+sessionsRouter.post("/", (req, res) => {
+  const body = req.body as Partial<CreateSessionDto>;
+  if (
+    typeof body.patientId !== "number" ||
+    typeof body.createdByUserId !== "number"
+  ) {
+    res.status(400).json({
+      message: "patientId and createdByUserId are required numbers",
+    });
+    return;
+  }
+
+  const hasActiveSession = sessions.some(
+    (session) =>
+      session.patientId === body.patientId &&
+      (session.status === "BORRADOR" || session.status === "EN_EJECUCION")
+  );
+
+  if (hasActiveSession) {
+    res.status(409).json({
+      message:
+        "Patient already has an active session in BORRADOR or EN_EJECUCION",
+    });
+    return;
+  }
+
+  const session: ScreeningSession = {
+    id: nextSessionId++,
+    patientId: body.patientId,
+    createdByUserId: body.createdByUserId,
+    status: "BORRADOR",
+  };
+
+  sessions.push(session);
+  res.status(201).json(session);
+});
+
+sessionsRouter.post("/:id/start", (req, res) => {
+  const id = parseId(req.params.id);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ message: "Invalid session id" });
+    return;
+  }
+
+  const session = sessions.find((item) => item.id === id);
+  if (!session) {
+    res.status(404).json({ message: "Session not found" });
+    return;
+  }
+
+  if (session.status !== "BORRADOR") {
+    res.status(409).json({
+      message: "Session can only be started from BORRADOR status",
+    });
+    return;
+  }
+
+  session.status = "EN_EJECUCION";
+  if (!session.startedAt) {
+    session.startedAt = new Date().toISOString();
+  }
+
+  res.json(session);
+});
+
+sessionsRouter.post("/:id/complete", (req, res) => {
+  const id = parseId(req.params.id);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ message: "Invalid session id" });
+    return;
+  }
+
+  const session = sessions.find((item) => item.id === id);
+  if (!session) {
+    res.status(404).json({ message: "Session not found" });
+    return;
+  }
+
+  if (session.status !== "EN_EJECUCION") {
+    res.status(409).json({
+      message: "Session can only be completed from EN_EJECUCION status",
+    });
+    return;
+  }
+
+  session.status = "COMPLETADA";
+  if (!session.finishedAt) {
+    session.finishedAt = new Date().toISOString();
+  }
+
+  res.json(session);
+});
+
+sessionsRouter.get("/:id", (req, res) => {
+  const id = parseId(req.params.id);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ message: "Invalid session id" });
+    return;
+  }
+
+  const session = sessions.find((item) => item.id === id);
+  if (!session) {
+    res.status(404).json({ message: "Session not found" });
+    return;
+  }
+
+  res.json(session);
+});

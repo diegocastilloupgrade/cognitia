@@ -1,5 +1,5 @@
 import { PatientsService } from "./patients.service";
-import type { CreatePatientInput } from "./patients.types";
+import type { CreatePatientDto } from "./patients.types";
 
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
@@ -8,7 +8,7 @@ export class PatientsController {
     return this.patientsService.list();
   }
 
-  create(input: CreatePatientInput) {
+  create(input: CreatePatientDto) {
     return this.patientsService.create(input);
   }
 }

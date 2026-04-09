@@ -1,12 +1,18 @@
 export interface Patient {
-  id: string;
-  firstName: string;
-  lastName: string;
+  id: number;
+  fullName: string;
   birthDate: string;
+  sex?: string;
+  internalCode?: string;
+  active: boolean;
 }
 
-export interface CreatePatientInput {
-  firstName: string;
-  lastName: string;
+export interface CreatePatientDto {
+  fullName: string;
   birthDate: string;
+  sex?: string;
+  internalCode?: string;
+  active?: boolean;
 }
+
+export type CreatePatientInput = CreatePatientDto;

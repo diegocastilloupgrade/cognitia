@@ -1,5 +1,5 @@
 import { SessionsService } from "./sessions.service";
-import type { CreateSessionInput } from "./sessions.types";
+import type { CreateSessionDto } from "./sessions.types";
 
 export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
@@ -8,7 +8,7 @@ export class SessionsController {
     return this.sessionsService.list();
   }
 
-  create(input: CreateSessionInput) {
+  create(input: CreateSessionDto) {
     return this.sessionsService.create(input);
   }
 }

@@ -1,15 +1,7 @@
-import { ExecutionController } from "./execution.controller";
-import { ExecutionService } from "./execution.service";
+import { Router } from "express";
 
-export function createExecutionModule() {
-  const service = new ExecutionService();
-  const controller = new ExecutionController(service);
+export const executionRouter = Router();
 
-  return {
-    name: "execution",
-    service,
-    controller,
-  };
-}
-
-export type ExecutionModule = ReturnType<typeof createExecutionModule>;
+executionRouter.get("/runtime", (_req, res) => {
+  res.json({ status: "idle" });
+});

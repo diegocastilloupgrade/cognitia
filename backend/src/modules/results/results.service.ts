@@ -2,16 +2,20 @@ import type { CreateResultInput, SessionResult } from "./results.types";
 
 export class ResultsService {
   private readonly results: SessionResult[] = [];
+  private nextId = 1;
 
-  listBySession(sessionId: string): SessionResult[] {
+  listBySession(sessionId: number): SessionResult[] {
     return this.results.filter((item) => item.sessionId === sessionId);
   }
 
   create(input: CreateResultInput): SessionResult {
     const result: SessionResult = {
-      id: `result-${this.results.length + 1}`,
+      id: this.nextId++,
       sessionId: input.sessionId,
-      score: input.score,
+      itemCode: input.itemCode,
+      positionInSession: input.positionInSession,
+      evaluatedOutcome: input.evaluatedOutcome,
+      data: input.data,
       createdAt: new Date().toISOString(),
     };
 

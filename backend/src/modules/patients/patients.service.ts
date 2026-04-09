@@ -2,6 +2,7 @@ import type { CreatePatientInput, Patient } from "./patients.types";
 
 export class PatientsService {
   private readonly patients: Patient[] = [];
+  private nextId = 1;
 
   list(): Patient[] {
     return this.patients;
@@ -9,8 +10,12 @@ export class PatientsService {
 
   create(input: CreatePatientInput): Patient {
     const patient: Patient = {
-      id: `patient-${this.patients.length + 1}`,
-      ...input,
+      id: this.nextId++,
+      fullName: input.fullName,
+      birthDate: input.birthDate,
+      sex: input.sex,
+      internalCode: input.internalCode,
+      active: input.active ?? true,
     };
 
     this.patients.push(patient);

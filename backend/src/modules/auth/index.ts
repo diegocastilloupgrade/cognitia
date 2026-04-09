@@ -1,15 +1,7 @@
-import { AuthController } from "./auth.controller";
-import { AuthService } from "./auth.service";
+import { Router } from "express";
 
-export function createAuthModule() {
-  const service = new AuthService();
-  const controller = new AuthController(service);
+export const authRouter = Router();
 
-  return {
-    name: "auth",
-    service,
-    controller,
-  };
-}
-
-export type AuthModule = ReturnType<typeof createAuthModule>;
+authRouter.post("/login", (_req, res) => {
+  res.status(501).json({ message: "Not implemented yet" });
+});
