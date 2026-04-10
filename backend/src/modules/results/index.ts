@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type {
   EvaluatedOutcome,
+  ItemResultData_3_1,
   ItemResultPayload,
 } from "./results.types";
 
@@ -11,6 +12,45 @@ let nextResultId = 1;
 
 function parseSessionId(value: string): number {
   return Number(value);
+}
+
+function isEvaluatedOutcome(value: unknown): value is EvaluatedOutcome {
+  return (
+    value === "ACIERTO" ||
+    value === "ERROR" ||
+    value === "OMISION" ||
+    value === "NO_APLICA"
+  );
+}
+
+function isItemResultData3_1(value: unknown): value is ItemResultData_3_1 {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.stimulusId === "string" &&
+    typeof candidate.recognizedText === "string" &&
+    typeof candidate.isCorrect === "boolean"
+  );
+}
+
+function resolveEvaluatedOutcome(input: {
+  itemCode: string;
+  evaluatedOutcome: unknown;
+  data: unknown;
+}): EvaluatedOutcome | undefined {
+  if (input.itemCode === "3.1" && isItemResultData3_1(input.data)) {
+    return input.data.isCorrect ? "ACIERTO" : "ERROR";
+  }
+
+  if (isEvaluatedOutcome(input.evaluatedOutcome)) {
+    return input.evaluatedOutcome;
+  }
+
+  return undefined;
 }
 
 function addResult(input: {
@@ -62,13 +102,16 @@ resultsRouter.post("/session/:sessionId", (req, res) => {
     data?: unknown;
   };
 
+  const evaluatedOutcome = resolveEvaluatedOutcome({
+    itemCode: body.itemCode as string,
+    evaluatedOutcome: body.evaluatedOutcome,
+    data: body.data,
+  });
+
   if (
     typeof body.itemCode !== "string" ||
     typeof body.positionInSession !== "number" ||
-    (body.evaluatedOutcome !== "ACIERTO" &&
-      body.evaluatedOutcome !== "ERROR" &&
-      body.evaluatedOutcome !== "OMISION" &&
-      body.evaluatedOutcome !== "NO_APLICA")
+    !evaluatedOutcome
   ) {
     res.status(400).json({
       message:
@@ -81,7 +124,7 @@ resultsRouter.post("/session/:sessionId", (req, res) => {
     sessionId,
     itemCode: body.itemCode,
     positionInSession: body.positionInSession,
-    evaluatedOutcome: body.evaluatedOutcome,
+    evaluatedOutcome,
     data: body.data,
   });
 

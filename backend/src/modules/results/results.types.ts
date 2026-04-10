@@ -13,8 +13,14 @@ export interface ItemResultBase {
   evaluatedOutcome: EvaluatedOutcome;
 }
 
-export interface ItemResultPayload extends ItemResultBase {
-  data: any;
+export interface ItemResultData_3_1 {
+  stimulusId: string;
+  recognizedText: string;
+  isCorrect: boolean;
+}
+
+export interface ItemResultPayload<TData = any> extends ItemResultBase {
+  data: TData;
 }
 
 // Compatibility aliases for existing skeleton service/controller files.

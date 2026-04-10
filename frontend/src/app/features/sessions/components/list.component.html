@@ -1,19 +1,42 @@
 <div class="sessions-container">
-  <h2>Sessions</h2>
-  <table>
+  <h2>Sesiones</h2>
+
+  <form (ngSubmit)="onSubmit()" #sessionForm="ngForm">
+    <label>
+      ID de paciente
+      <input type="number" name="patientId" [(ngModel)]="form.patientId" required min="1" />
+    </label>
+    <input type="hidden" name="createdByUserId" [(ngModel)]="form.createdByUserId" />
+    <button type="submit" [disabled]="!sessionForm.form.valid || form.patientId < 1">Crear sesión</button>
+  </form>
+
+  <p *ngIf="loading">Cargando...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <table *ngIf="!loading && sessions.length > 0">
     <thead>
       <tr>
         <th>ID</th>
-        <th>Patient ID</th>
-        <th>Status</th>
+        <th>Paciente ID</th>
+        <th>Usuario ID</th>
+        <th>Estado</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let session of sessions">
         <td>{{ session.id }}</td>
         <td>{{ session.patientId }}</td>
+        <td>{{ session.createdByUserId }}</td>
         <td>{{ session.status }}</td>
+        <td>{{ session.startedAt ?? '—' }}</td>
+        <td>{{ session.finishedAt ?? '—' }}</td>
+        <td><a [routerLink]="['/execution', session.id]">Ver</a></td>
       </tr>
     </tbody>
   </table>
+
+  <p *ngIf="!loading && sessions.length === 0 && !error">No hay sesiones registradas.</p>
 </div>
