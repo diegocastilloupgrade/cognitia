@@ -1,0 +1,10 @@
+# Dependencias
+**/node_modules
+
+# Builds
+**/dist
+**/build
+
+# Otros típicos
+.env
+.env.local
