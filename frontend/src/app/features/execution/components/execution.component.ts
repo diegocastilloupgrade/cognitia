@@ -1,6 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { ExecutionService, ItemResultData_3_1, ItemResultPayload } from '../services/execution.service';
+import {
+  ExecutionService,
+  ItemResultData_3_1,
+  ItemResultPayload,
+  ItemTimingState
+} from '../services/execution.service';
 import { ScreeningSession } from '../../../shared/models/session.models';
 import { Stimulus, STIMULI_DEMO } from '../stimuli.config';
 
@@ -18,6 +23,9 @@ export class ExecutionComponent implements OnInit {
   visibleStimuli: Stimulus[] = STIMULI_DEMO;
   currentStimulusIndex = 0;
   results: ItemResultPayload[] = [];
+  currentItemCode = '';
+  currentTimingState?: ItemTimingState;
+  sessionTimingStates: ItemTimingState[] = [];
 
   get currentStimulus(): Stimulus | null {
     return this.visibleStimuli[this.currentStimulusIndex] ?? null;
@@ -32,6 +40,9 @@ export class ExecutionComponent implements OnInit {
     this.sessionId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadSession();
     this.loadResults();
+    this.updateCurrentItemCode();
+    this.loadSessionTimingStates();
+    this.refreshCurrentTimingState();
   }
 
   loadSession(): void {
@@ -56,6 +67,13 @@ export class ExecutionComponent implements OnInit {
     });
   }
 
+  loadSessionTimingStates(): void {
+    this.executionService.getSessionTimingStates(this.sessionId).subscribe({
+      next: (data) => { this.sessionTimingStates = data; },
+      error: () => { this.sessionTimingStates = []; }
+    });
+  }
+
   startSession(): void {
     this.executionService.startSession(this.sessionId).subscribe({
       next: (data) => { this.session = data; },
@@ -73,13 +91,81 @@ export class ExecutionComponent implements OnInit {
   showPreviousStimulus(): void {
     if (this.currentStimulusIndex > 0) {
       this.currentStimulusIndex--;
+      this.updateCurrentItemCode();
+      this.refreshCurrentTimingState();
     }
   }
 
   showNextStimulus(): void {
     if (this.currentStimulusIndex < this.visibleStimuli.length - 1) {
       this.currentStimulusIndex++;
+      this.updateCurrentItemCode();
+      this.refreshCurrentTimingState();
     }
+  }
+
+  updateCurrentItemCode(): void {
+    this.currentItemCode = this.currentStimulus?.itemCode ?? '';
+  }
+
+  refreshCurrentTimingState(): void {
+    if (!this.currentItemCode) {
+      this.currentTimingState = undefined;
+      return;
+    }
+
+    this.executionService.getItemTimingState(this.sessionId, this.currentItemCode).subscribe({
+      next: (state) => { this.currentTimingState = state; },
+      error: () => { this.currentTimingState = undefined; }
+    });
+  }
+
+  startCurrentItemTiming(): void {
+    if (!this.currentItemCode) return;
+
+    this.executionService.startItemTiming(this.sessionId, this.currentItemCode).subscribe({
+      next: () => {
+        this.refreshCurrentTimingState();
+        this.loadSessionTimingStates();
+      },
+      error: () => { this.error = 'Error al iniciar timing del ítem.'; }
+    });
+  }
+
+  registerFirstSilence(): void {
+    if (!this.currentItemCode) return;
+
+    this.executionService.registerSilence(this.sessionId, this.currentItemCode, 1).subscribe({
+      next: () => {
+        this.refreshCurrentTimingState();
+        this.loadSessionTimingStates();
+      },
+      error: () => { this.error = 'Error al registrar el primer silencio.'; }
+    });
+  }
+
+  registerSecondSilence(): void {
+    if (!this.currentItemCode) return;
+
+    this.executionService.registerSilence(this.sessionId, this.currentItemCode, 2).subscribe({
+      next: () => {
+        this.refreshCurrentTimingState();
+        this.loadSessionTimingStates();
+      },
+      error: () => { this.error = 'Error al registrar el segundo silencio.'; }
+    });
+  }
+
+  completeCurrentItemTiming(): void {
+    if (!this.currentItemCode) return;
+
+    this.executionService.completeItemTiming(this.sessionId, this.currentItemCode).subscribe({
+      next: () => {
+        this.refreshCurrentTimingState();
+        this.loadSessionTimingStates();
+      },
+      error: () => { this.error = 'Error al completar timing del ítem.'; }
+    });
   }
 
   saveCurrentStimulusAsSeen(): void {

@@ -58,6 +58,71 @@
       </ng-template>
     </div>
 
+    <div class="timing-current-block">
+      <h3>Timing del ítem actual</h3>
+      <dl>
+        <dt>itemCode</dt>
+        <dd>{{ currentItemCode || '—' }}</dd>
+
+        <dt>startedAt</dt>
+        <dd>{{ currentTimingState?.startedAt ?? '—' }}</dd>
+
+        <dt>durationSeconds</dt>
+        <dd>{{ currentTimingState?.durationSeconds ?? '—' }}</dd>
+
+        <dt>silenceThresholdSeconds</dt>
+        <dd>{{ currentTimingState?.silenceThresholdSeconds ?? '—' }}</dd>
+
+        <dt>completed</dt>
+        <dd>{{ currentTimingState?.completed ?? false }}</dd>
+      </dl>
+
+      <div class="timing-controls">
+        <button (click)="startCurrentItemTiming()" [disabled]="!currentItemCode">Iniciar timing del ítem</button>
+        <button (click)="registerFirstSilence()" [disabled]="!currentItemCode">Registrar 1er silencio</button>
+        <button (click)="registerSecondSilence()" [disabled]="!currentItemCode">Registrar 2º silencio</button>
+        <button (click)="completeCurrentItemTiming()" [disabled]="!currentItemCode">Completar timing del ítem</button>
+      </div>
+
+      <div class="silence-events">
+        <h4>Silencios del ítem actual</h4>
+        <ul *ngIf="(currentTimingState?.silenceEvents?.length ?? 0) > 0; else noSilenceEvents">
+          <li *ngFor="let event of currentTimingState?.silenceEvents">
+            {{ event.type }} - {{ event.occurredAt }}
+          </li>
+        </ul>
+        <ng-template #noSilenceEvents>
+          <p>No hay eventos de silencio registrados para el ítem actual.</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="session-timing-block" *ngIf="sessionTimingStates.length > 0">
+      <h3>Timing de la sesión</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>itemCode</th>
+            <th>startedAt</th>
+            <th>durationSeconds</th>
+            <th>silenceThresholdSeconds</th>
+            <th>silenceEvents</th>
+            <th>completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let state of sessionTimingStates">
+            <td>{{ state.itemCode }}</td>
+            <td>{{ state.startedAt }}</td>
+            <td>{{ state.durationSeconds }}</td>
+            <td>{{ state.silenceThresholdSeconds }}</td>
+            <td>{{ state.silenceEvents.length }}</td>
+            <td>{{ state.completed }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- Resultados registrados -->
     <div *ngIf="results.length > 0" class="results-block">
       <h3>Estímulos registrados en esta sesión</h3>

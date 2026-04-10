@@ -22,12 +22,28 @@ export interface ItemResultPayload<TData = any> {
   createdAt?: string;
 }
 
+export interface SilenceEvent {
+  occurredAt: string;
+  type: 'FIRST_SILENCE' | 'SECOND_SILENCE';
+}
+
+export interface ItemTimingState {
+  sessionId: number;
+  itemCode: string;
+  startedAt: string;
+  durationSeconds: number;
+  silenceThresholdSeconds: number;
+  silenceEvents: SilenceEvent[];
+  completed: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ExecutionService {
   private readonly sessionsUrl = `${environment.apiBaseUrl}/sessions`;
   private readonly resultsUrl = `${environment.apiBaseUrl}/results`;
+  private readonly executionUrl = `${environment.apiBaseUrl}/execution`;
 
   constructor(private http: HttpClient) {}
 
@@ -64,6 +80,37 @@ export class ExecutionService {
         evaluatedOutcome,
         data: data ?? { stimulusId }
       }
+    );
+  }
+
+  getItemTimingState(sessionId: number, itemCode: string): Observable<ItemTimingState> {
+    return this.http.get<ItemTimingState>(
+      `${this.executionUrl}/session/${sessionId}/item/${itemCode}/state`
+    );
+  }
+
+  getSessionTimingStates(sessionId: number): Observable<ItemTimingState[]> {
+    return this.http.get<ItemTimingState[]>(`${this.executionUrl}/session/${sessionId}/state`);
+  }
+
+  startItemTiming(sessionId: number, itemCode: string): Observable<ItemTimingState> {
+    return this.http.post<ItemTimingState>(
+      `${this.executionUrl}/session/${sessionId}/item/${itemCode}/start`,
+      {}
+    );
+  }
+
+  registerSilence(sessionId: number, itemCode: string, level: 1 | 2): Observable<ItemTimingState> {
+    return this.http.post<ItemTimingState>(
+      `${this.executionUrl}/session/${sessionId}/item/${itemCode}/silence`,
+      { level }
+    );
+  }
+
+  completeItemTiming(sessionId: number, itemCode: string): Observable<ItemTimingState> {
+    return this.http.post<ItemTimingState>(
+      `${this.executionUrl}/session/${sessionId}/item/${itemCode}/complete`,
+      {}
     );
   }
 }
