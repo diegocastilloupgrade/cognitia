@@ -16,6 +16,10 @@ function findItemTimingState(sessionId: number, itemCode: string): ItemTimingSta
   );
 }
 
+function listItemTimingStatesBySessionId(sessionId: number): ItemTimingState[] {
+  return itemTimingStates.filter((state) => state.sessionId === sessionId);
+}
+
 function upsertItemTimingState(sessionId: number, itemCode: string): ItemTimingState {
   const config = getItemTimingConfig(itemCode);
   const nextState: ItemTimingState = {
@@ -56,6 +60,35 @@ executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
 
   const state = upsertItemTimingState(sessionId, itemCode);
   res.status(201).json(state);
+});
+
+executionRouter.get("/session/:sessionId/item/:itemCode/state", (req, res) => {
+  const sessionId = parseSessionId(req.params.sessionId);
+  const { itemCode } = req.params;
+
+  if (Number.isNaN(sessionId)) {
+    res.status(400).json({ message: "Invalid sessionId" });
+    return;
+  }
+
+  const state = findItemTimingState(sessionId, itemCode);
+  if (!state) {
+    res.status(404).json({ message: "Timing state not found" });
+    return;
+  }
+
+  res.json(state);
+});
+
+executionRouter.get("/session/:sessionId/state", (req, res) => {
+  const sessionId = parseSessionId(req.params.sessionId);
+
+  if (Number.isNaN(sessionId)) {
+    res.status(400).json({ message: "Invalid sessionId" });
+    return;
+  }
+
+  res.json(listItemTimingStatesBySessionId(sessionId));
 });
 
 executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) => {
