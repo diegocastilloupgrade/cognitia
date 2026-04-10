@@ -1,8 +1,84 @@
 <div class="execution-container">
-  <h2>Execution</h2>
-  <div class="status" [class.running]="isRunning">
-    Status: {{ isRunning ? 'Running' : 'Stopped' }}
-  </div>
-  <button (click)="startExecution()" [disabled]="isRunning">Start</button>
-  <button (click)="stopExecution()" [disabled]="!isRunning">Stop</button>
+  <h2>Ejecución de sesión</h2>
+
+  <p *ngIf="loading">Cargando...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <ng-container *ngIf="session">
+    <dl>
+      <dt>ID de sesión</dt>
+      <dd>{{ session.id }}</dd>
+
+      <dt>Estado</dt>
+      <dd>{{ session.status }}</dd>
+
+      <dt>Inicio</dt>
+      <dd>{{ session.startedAt ?? '—' }}</dd>
+
+      <dt>Fin</dt>
+      <dd>{{ session.finishedAt ?? '—' }}</dd>
+    </dl>
+
+    <button
+      *ngIf="session.status === 'BORRADOR'"
+      (click)="startSession()">
+      Iniciar sesión
+    </button>
+
+    <button
+      *ngIf="session.status === 'EN_EJECUCION'"
+      (click)="completeSession()">
+      Finalizar sesión
+    </button>
+
+    <p *ngIf="session.status === 'COMPLETADA'">La sesión ha sido completada.</p>
+
+    <!-- Bloque de estímulos: solo visible durante la ejecución -->
+    <div *ngIf="session.status === 'EN_EJECUCION'" class="stimulus-block">
+      <ng-container *ngIf="visibleStimuli.length > 0; else noStimuli">
+        <ng-container *ngIf="currentStimulus as stim">
+          <img
+            [src]="stim.assetPath"
+            [alt]="stim.label || stim.id"
+            class="stimulus-image"
+          />
+          <p class="stimulus-label">{{ stim.label || stim.id }}</p>
+          <p class="stimulus-counter">{{ currentStimulusIndex + 1 }} / {{ visibleStimuli.length }}</p>
+        </ng-container>
+
+        <div class="stimulus-controls">
+          <button (click)="showPreviousStimulus()" [disabled]="currentStimulusIndex === 0">Anterior</button>
+          <button (click)="showNextStimulus()" [disabled]="currentStimulusIndex === visibleStimuli.length - 1">Siguiente</button>
+          <button (click)="saveCurrentStimulusAsSeen()">Registrar estímulo mostrado</button>
+        </div>
+      </ng-container>
+
+      <ng-template #noStimuli>
+        <p>No hay estímulos configurados.</p>
+      </ng-template>
+    </div>
+
+    <!-- Resultados registrados -->
+    <div *ngIf="results.length > 0" class="results-block">
+      <h3>Estímulos registrados en esta sesión</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Posición</th>
+            <th>Código ítem</th>
+            <th>Estímulo ID</th>
+            <th>Creado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of results">
+            <td>{{ r.positionInSession }}</td>
+            <td>{{ r.itemCode }}</td>
+            <td>{{ r.data?.stimulusId }}</td>
+            <td>{{ r.createdAt ?? '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
 </div>

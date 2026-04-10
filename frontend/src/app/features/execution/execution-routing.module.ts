@@ -4,7 +4,7 @@ import { ExecutionComponent } from './components/execution.component';
 
 const routes: Routes = [
   {
-    path: '',
+    path: ':id',
     component: ExecutionComponent
   }
 ];

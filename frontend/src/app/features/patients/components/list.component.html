@@ -1,21 +1,39 @@
 <div class="patients-container">
-  <h2>Patients</h2>
-  <table>
+  <h2>Pacientes</h2>
+
+  <form (ngSubmit)="onSubmit()" #patientForm="ngForm">
+    <label>
+      Nombre completo
+      <input type="text" name="fullName" [(ngModel)]="form.fullName" required />
+    </label>
+    <label>
+      Fecha de nacimiento
+      <input type="date" name="birthDate" [(ngModel)]="form.birthDate" required />
+    </label>
+    <button type="submit" [disabled]="!patientForm.form.valid">Crear paciente</button>
+  </form>
+
+  <p *ngIf="loading">Cargando...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <table *ngIf="!loading && patients.length > 0">
     <thead>
       <tr>
         <th>ID</th>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Birth Date</th>
+        <th>Nombre completo</th>
+        <th>Fecha de nacimiento</th>
+        <th>Activo</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let patient of patients">
         <td>{{ patient.id }}</td>
-        <td>{{ patient.firstName }}</td>
-        <td>{{ patient.lastName }}</td>
+        <td>{{ patient.fullName }}</td>
         <td>{{ patient.birthDate }}</td>
+        <td>{{ patient.active ? 'Sí' : 'No' }}</td>
       </tr>
     </tbody>
   </table>
+
+  <p *ngIf="!loading && patients.length === 0 && !error">No hay pacientes registrados.</p>
 </div>
