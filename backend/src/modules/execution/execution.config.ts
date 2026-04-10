@@ -1,0 +1,21 @@
+import type { ItemTimingConfig } from "./execution.types";
+
+export const ITEM_TIMING_CONFIGS: ItemTimingConfig[] = [
+  { itemCode: "3.1", durationSeconds: 60, silenceThresholdSeconds: 5 },
+  { itemCode: "3.4.1", durationSeconds: 45, silenceThresholdSeconds: 5 },
+  { itemCode: "3.4.2", durationSeconds: 45, silenceThresholdSeconds: 5 },
+];
+
+export function getItemTimingConfig(itemCode: string): ItemTimingConfig {
+  const match = ITEM_TIMING_CONFIGS.find((item) => item.itemCode === itemCode);
+
+  if (match) {
+    return match;
+  }
+
+  return {
+    itemCode,
+    durationSeconds: 60,
+    silenceThresholdSeconds: 5,
+  };
+}

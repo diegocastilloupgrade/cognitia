@@ -1,0 +1,29 @@
+# Monorepo dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+frontend/dist/
+backend/dist/
+
+# Coverage reports
+coverage/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Angular cache
+frontend/.angular/cache/
+
+# OS files
+.DS_Store
+Thumbs.db
