@@ -60,8 +60,13 @@ test("execution timing flow supports start, silence, complete and state queries"
 
   assert.equal(firstSilence.status, 200);
   assert.equal(
-    ((firstSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[0].type,
+    (((firstSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[0].type,
     "FIRST_SILENCE"
+  );
+  assert.equal(
+    ((firstSilence.body as Record<string, unknown>).avatarFeedback as Record<string, unknown>).messageCode,
+    "SILENCE_FIRST_PROMPT"
   );
 
   const secondSilence = await jsonRequest(baseUrl, "/api/execution/session/1/item/3.1/silence", {
@@ -71,8 +76,13 @@ test("execution timing flow supports start, silence, complete and state queries"
 
   assert.equal(secondSilence.status, 200);
   assert.equal(
-    ((secondSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[1].type,
+    (((secondSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[1].type,
     "SECOND_SILENCE"
+  );
+  assert.equal(
+    ((secondSilence.body as Record<string, unknown>).avatarFeedback as Record<string, unknown>).messageCode,
+    "SILENCE_SECOND_PROMPT"
   );
 
   const singleState = await jsonRequest(baseUrl, "/api/execution/session/1/item/3.1/state");
@@ -141,5 +151,78 @@ test("execution runtime rejects events from inactive items", async (t) => {
   assert.equal(
     (staleItemSilence.body as Record<string, unknown>).message,
     "Runtime event rejected for item 3.1; active item is 3.4.1"
+  );
+});
+
+test("execution silence endpoint accepts mock event envelope and escalates automatically", async (t) => {
+  const { server, baseUrl } = await startTestServer();
+  t.after(() => server.close());
+
+  const start = await jsonRequest(baseUrl, "/api/execution/session/3/item/3.1/start", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  assert.equal(start.status, 201);
+
+  const firstSilence = await jsonRequest(baseUrl, "/api/execution/session/3/item/3.1/silence", {
+    method: "POST",
+    body: JSON.stringify({
+      event: {
+        source: "MOCK",
+        eventType: "SILENCE_DETECTED",
+        sessionId: 3,
+        itemCode: "3.1",
+        occurredAt: new Date().toISOString(),
+      },
+    }),
+  });
+
+  assert.equal(firstSilence.status, 200);
+  assert.equal(
+    (((firstSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[0].type,
+    "FIRST_SILENCE"
+  );
+
+  const secondSilence = await jsonRequest(baseUrl, "/api/execution/session/3/item/3.1/silence", {
+    method: "POST",
+    body: JSON.stringify({
+      event: {
+        source: "MOCK",
+        eventType: "SILENCE_DETECTED",
+        sessionId: 3,
+        itemCode: "3.1",
+        occurredAt: new Date().toISOString(),
+      },
+    }),
+  });
+
+  assert.equal(secondSilence.status, 200);
+  assert.equal(
+    (((secondSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[1].type,
+    "SECOND_SILENCE"
+  );
+});
+
+test("execution silence endpoint rejects out-of-sequence silence levels", async (t) => {
+  const { server, baseUrl } = await startTestServer();
+  t.after(() => server.close());
+
+  const start = await jsonRequest(baseUrl, "/api/execution/session/4/item/3.1/start", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  assert.equal(start.status, 201);
+
+  const invalidSequence = await jsonRequest(baseUrl, "/api/execution/session/4/item/3.1/silence", {
+    method: "POST",
+    body: JSON.stringify({ level: 2 }),
+  });
+
+  assert.equal(invalidSequence.status, 409);
+  assert.equal(
+    (invalidSequence.body as Record<string, unknown>).message,
+    "Silence level out of sequence; expected level 1"
   );
 });

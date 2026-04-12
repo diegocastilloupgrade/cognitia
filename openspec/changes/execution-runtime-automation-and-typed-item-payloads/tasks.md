@@ -7,10 +7,10 @@
 
 ## 2. Flujo mock de silencio y feedback del avatar
 
-- [ ] 2.1 Definir un esquema mock de evento de silencio en la frontera execution/integrations compatible con el mapeo futuro de eventos Unith. [JIRA: COG-6]
-- [ ] 2.2 Implementar gestión de primer silencio y segundo silencio con actualizaciones de estado runtime. [JIRA: COG-12]
-- [ ] 2.3 Devolver payload estructurado de feedback del avatar (código de mensaje + texto) desde backend en eventos de silencio. [JIRA: COG-13]
-- [ ] 2.4 Actualizar componente/servicio de ejecución frontend para consumir el payload de feedback por silencio y mostrarlo en UI. [JIRA: COG-15]
+- [x] 2.1 Definir un esquema mock de evento de silencio en la frontera execution/integrations compatible con el mapeo futuro de eventos Unith. [JIRA: COG-6]
+- [x] 2.2 Implementar gestión de primer silencio y segundo silencio con actualizaciones de estado runtime. [JIRA: COG-12]
+- [x] 2.3 Devolver payload estructurado de feedback del avatar (código de mensaje + texto) desde backend en eventos de silencio. [JIRA: COG-13]
+- [x] 2.4 Actualizar componente/servicio de ejecución frontend para consumir el payload de feedback por silencio y mostrarlo en UI. [JIRA: COG-15]
 
 ## 3. Payloads tipados de resultado por ítem (3.1-3.7)
 

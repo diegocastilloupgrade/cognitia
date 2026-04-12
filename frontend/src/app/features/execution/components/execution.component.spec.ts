@@ -60,10 +60,16 @@ describe('ExecutionComponent', () => {
     executionService.startItemTiming.and.returnValue(of(timingState));
     executionService.registerSilence.and.returnValue(
       of({
-        ...timingState,
-        silenceEvents: [
-          { occurredAt: '2026-04-10T00:03:00.000Z', type: 'FIRST_SILENCE' },
-        ],
+        state: {
+          ...timingState,
+          silenceEvents: [
+            { occurredAt: '2026-04-10T00:03:00.000Z', type: 'FIRST_SILENCE' },
+          ],
+        },
+        avatarFeedback: {
+          messageCode: 'SILENCE_FIRST_PROMPT',
+          text: 'Tómate un momento y responde cuando estés listo.'
+        }
       })
     );
     executionService.completeItemTiming.and.returnValue(of({ ...timingState, completed: true }));
@@ -118,5 +124,6 @@ describe('ExecutionComponent', () => {
     expect(executionService.registerSilence).toHaveBeenCalledWith(1, '3.1', 1);
     expect(executionService.registerSilence).toHaveBeenCalledWith(1, '3.1', 2);
     expect(executionService.completeItemTiming).toHaveBeenCalledWith(1, '3.1');
+    expect(component.latestAvatarFeedback?.messageCode).toBe('SILENCE_FIRST_PROMPT');
   });
 });

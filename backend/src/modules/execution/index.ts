@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getItemTimingConfig, getNextItemCode } from "./execution.config";
 import type { ItemTimingState, RuntimeSessionState } from "./execution.types";
+import { parseMockSilenceEvent } from "../integrations";
 
 export const executionRouter = Router();
 
@@ -107,6 +108,20 @@ function buildActiveItemMetadata(state: ItemTimingState | null): Record<string, 
   };
 }
 
+function buildSilenceFeedback(level: 1 | 2): { messageCode: string; text: string } {
+  if (level === 1) {
+    return {
+      messageCode: "SILENCE_FIRST_PROMPT",
+      text: "Tómate un momento y responde cuando estés listo.",
+    };
+  }
+
+  return {
+    messageCode: "SILENCE_SECOND_PROMPT",
+    text: "Si necesitas ayuda, puedes intentarlo una vez más ahora.",
+  };
+}
+
 function assertActiveItem(sessionId: number, itemCode: string): string | null {
   const session = findRuntimeSession(sessionId);
   if (!session) {
@@ -179,8 +194,9 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
     return;
   }
 
-  if (body.level !== 1 && body.level !== 2) {
-    res.status(400).json({ message: "level must be 1 or 2" });
+  const parsedEvent = parseMockSilenceEvent(body, sessionId, itemCode);
+  if (!parsedEvent.isValid) {
+    res.status(400).json({ message: parsedEvent.error ?? "Invalid silence payload" });
     return;
   }
 
@@ -196,12 +212,30 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
     return;
   }
 
+  const expectedLevel = (state.silenceEvents.length + 1) as 1 | 2 | 3;
+  if (expectedLevel > 2) {
+    res.status(409).json({ message: "Silence escalation already reached SECOND_SILENCE" });
+    return;
+  }
+
+  if (body.level !== undefined && body.level !== expectedLevel) {
+    res.status(409).json({
+      message: `Silence level out of sequence; expected level ${expectedLevel}`,
+    });
+    return;
+  }
+
+  const silenceLevel = expectedLevel as 1 | 2;
+
   state.silenceEvents.push({
     occurredAt: new Date().toISOString(),
-    type: body.level === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
+    type: silenceLevel === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
   });
 
-  res.json(state);
+  res.json({
+    state,
+    avatarFeedback: buildSilenceFeedback(silenceLevel),
+  });
 });
 
 executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) => {
