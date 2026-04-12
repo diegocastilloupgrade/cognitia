@@ -72,7 +72,17 @@ describe('ExecutionComponent', () => {
         }
       })
     );
-    executionService.completeItemTiming.and.returnValue(of({ ...timingState, completed: true }));
+    executionService.completeItemTiming.and.returnValue(of({
+      sessionId: 1,
+      completedItem: { ...timingState, completed: true },
+      runtimeStatus: 'IN_PROGRESS',
+      activeItem: {
+        itemCode: '3.4.1',
+        startedAt: '2026-04-10T00:04:00.000Z',
+        durationSeconds: 45,
+        silenceThresholdSeconds: 5,
+      },
+    }));
 
     await TestBed.configureTestingModule({
       declarations: [ExecutionComponent],

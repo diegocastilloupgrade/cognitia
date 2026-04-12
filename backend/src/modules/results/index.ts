@@ -1,14 +1,19 @@
 import { Router } from "express";
 import type {
+  AnyCreateResultInput,
   EvaluatedOutcome,
+  ItemCode,
+  ItemResultDataByCode,
   ItemResultData_3_1,
-  ItemResultPayload,
+  SessionResult,
 } from "./results.types";
 
 export const resultsRouter = Router();
 
-const sessionResults: ItemResultPayload[] = [];
+const sessionResults: SessionResult[] = [];
 let nextResultId = 1;
+
+const ITEM_CODES: ItemCode[] = ["3.1", "3.2", "3.3", "3.4.1", "3.4.2", "3.5", "3.6", "3.7"];
 
 function parseSessionId(value: string): number {
   return Number(value);
@@ -37,8 +42,61 @@ function isItemResultData3_1(value: unknown): value is ItemResultData_3_1 {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isValidItemCode(value: unknown): value is ItemCode {
+  return typeof value === "string" && ITEM_CODES.includes(value as ItemCode);
+}
+
+function isValidDataForItemCode<TCode extends ItemCode>(
+  itemCode: TCode,
+  value: unknown
+): value is ItemResultDataByCode[TCode] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  switch (itemCode) {
+    case "3.1":
+      return isItemResultData3_1(value);
+    case "3.2":
+    case "3.3":
+      return (
+        typeof value.recognizedText === "string" &&
+        typeof value.responseTimeMs === "number" &&
+        typeof value.wasCompleted === "boolean"
+      );
+    case "3.4.1":
+      return isStringArray(value.recognizedSequence) && (value.firstErrorIndex === null || typeof value.firstErrorIndex === "number");
+    case "3.4.2":
+      return typeof value.errors === "number" && typeof value.omissions === "number";
+    case "3.5":
+      return (
+        typeof value.producedCount === "number" &&
+        typeof value.elapsedSeconds === "number" &&
+        typeof value.recognizedText === "string"
+      );
+    case "3.6":
+      return isStringArray(value.recalledItems) && typeof value.recognizedText === "string";
+    case "3.7":
+      return (
+        isStringArray(value.recalledItems) &&
+        typeof value.cueType === "string" &&
+        typeof value.recognizedText === "string"
+      );
+    default:
+      return false;
+  }
+}
+
 function resolveEvaluatedOutcome(input: {
-  itemCode: string;
+  itemCode: ItemCode;
   evaluatedOutcome: unknown;
   data: unknown;
 }): EvaluatedOutcome | undefined {
@@ -53,14 +111,8 @@ function resolveEvaluatedOutcome(input: {
   return undefined;
 }
 
-function addResult(input: {
-  sessionId: number;
-  itemCode: string;
-  positionInSession: number;
-  evaluatedOutcome: EvaluatedOutcome;
-  data: any;
-}): ItemResultPayload {
-  const result: ItemResultPayload = {
+function addResult(input: AnyCreateResultInput): SessionResult {
+  const result: SessionResult = {
     id: nextResultId++,
     sessionId: input.sessionId,
     itemCode: input.itemCode,
@@ -74,7 +126,7 @@ function addResult(input: {
   return result;
 }
 
-function listBySessionId(sessionId: number): ItemResultPayload[] {
+function listBySessionId(sessionId: number): SessionResult[] {
   return sessionResults.filter((item) => item.sessionId === sessionId);
 }
 
@@ -102,14 +154,23 @@ resultsRouter.post("/session/:sessionId", (req, res) => {
     data?: unknown;
   };
 
+  if (!isValidItemCode(body.itemCode)) {
+    res.status(400).json({ message: "itemCode is invalid or unsupported" });
+    return;
+  }
+
+  if (!isValidDataForItemCode(body.itemCode, body.data)) {
+    res.status(400).json({ message: "data payload shape does not match itemCode" });
+    return;
+  }
+
   const evaluatedOutcome = resolveEvaluatedOutcome({
-    itemCode: body.itemCode as string,
+    itemCode: body.itemCode,
     evaluatedOutcome: body.evaluatedOutcome,
     data: body.data,
   });
 
   if (
-    typeof body.itemCode !== "string" ||
     typeof body.positionInSession !== "number" ||
     !evaluatedOutcome
   ) {

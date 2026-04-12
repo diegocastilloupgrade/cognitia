@@ -1,6 +1,8 @@
+import type { ItemCode } from './services/execution.service';
+
 export interface Stimulus {
   id: string;
-  itemCode: string;
+  itemCode: ItemCode;
   assetPath: string;
   label?: string;
 }

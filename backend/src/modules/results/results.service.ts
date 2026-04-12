@@ -1,4 +1,4 @@
-import type { CreateResultInput, SessionResult } from "./results.types";
+import type { AnyCreateResultInput, SessionResult } from "./results.types";
 
 export class ResultsService {
   private readonly results: SessionResult[] = [];
@@ -8,7 +8,7 @@ export class ResultsService {
     return this.results.filter((item) => item.sessionId === sessionId);
   }
 
-  create(input: CreateResultInput): SessionResult {
+  create(input: AnyCreateResultInput): SessionResult {
     const result: SessionResult = {
       id: this.nextId++,
       sessionId: input.sessionId,
