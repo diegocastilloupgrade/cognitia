@@ -60,8 +60,13 @@ test("execution timing flow supports start, silence, complete and state queries"
 
   assert.equal(firstSilence.status, 200);
   assert.equal(
-    ((firstSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[0].type,
+    (((firstSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[0].type,
     "FIRST_SILENCE"
+  );
+  assert.equal(
+    ((firstSilence.body as Record<string, unknown>).avatarFeedback as Record<string, unknown>).messageCode,
+    "SILENCE_FIRST_PROMPT"
   );
 
   const secondSilence = await jsonRequest(baseUrl, "/api/execution/session/1/item/3.1/silence", {
@@ -71,8 +76,13 @@ test("execution timing flow supports start, silence, complete and state queries"
 
   assert.equal(secondSilence.status, 200);
   assert.equal(
-    ((secondSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[1].type,
+    (((secondSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[1].type,
     "SECOND_SILENCE"
+  );
+  assert.equal(
+    ((secondSilence.body as Record<string, unknown>).avatarFeedback as Record<string, unknown>).messageCode,
+    "SILENCE_SECOND_PROMPT"
   );
 
   const singleState = await jsonRequest(baseUrl, "/api/execution/session/1/item/3.1/state");
@@ -169,7 +179,8 @@ test("execution silence endpoint accepts mock event envelope and escalates autom
 
   assert.equal(firstSilence.status, 200);
   assert.equal(
-    ((firstSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[0].type,
+    (((firstSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[0].type,
     "FIRST_SILENCE"
   );
 
@@ -188,7 +199,8 @@ test("execution silence endpoint accepts mock event envelope and escalates autom
 
   assert.equal(secondSilence.status, 200);
   assert.equal(
-    ((secondSilence.body as Record<string, unknown>).silenceEvents as Array<Record<string, unknown>>)[1].type,
+    (((secondSilence.body as Record<string, unknown>).state as Record<string, unknown>)
+      .silenceEvents as Array<Record<string, unknown>>)[1].type,
     "SECOND_SILENCE"
   );
 });

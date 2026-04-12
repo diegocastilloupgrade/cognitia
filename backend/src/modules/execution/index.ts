@@ -108,6 +108,20 @@ function buildActiveItemMetadata(state: ItemTimingState | null): Record<string, 
   };
 }
 
+function buildSilenceFeedback(level: 1 | 2): { messageCode: string; text: string } {
+  if (level === 1) {
+    return {
+      messageCode: "SILENCE_FIRST_PROMPT",
+      text: "Tómate un momento y responde cuando estés listo.",
+    };
+  }
+
+  return {
+    messageCode: "SILENCE_SECOND_PROMPT",
+    text: "Si necesitas ayuda, puedes intentarlo una vez más ahora.",
+  };
+}
+
 function assertActiveItem(sessionId: number, itemCode: string): string | null {
   const session = findRuntimeSession(sessionId);
   if (!session) {
@@ -211,12 +225,17 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
     return;
   }
 
+  const silenceLevel = expectedLevel as 1 | 2;
+
   state.silenceEvents.push({
     occurredAt: new Date().toISOString(),
-    type: expectedLevel === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
+    type: silenceLevel === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
   });
 
-  res.json(state);
+  res.json({
+    state,
+    avatarFeedback: buildSilenceFeedback(silenceLevel),
+  });
 });
 
 executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) => {

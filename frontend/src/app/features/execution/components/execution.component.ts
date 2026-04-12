@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
+  AvatarFeedbackPayload,
   ExecutionService,
   ItemResultData_3_1,
   ItemResultPayload,
@@ -26,6 +27,7 @@ export class ExecutionComponent implements OnInit {
   currentItemCode = '';
   currentTimingState?: ItemTimingState;
   sessionTimingStates: ItemTimingState[] = [];
+  latestAvatarFeedback: AvatarFeedbackPayload | null = null;
 
   get currentStimulus(): Stimulus | null {
     return this.visibleStimuli[this.currentStimulusIndex] ?? null;
@@ -136,8 +138,9 @@ export class ExecutionComponent implements OnInit {
     if (!this.currentItemCode) return;
 
     this.executionService.registerSilence(this.sessionId, this.currentItemCode, 1).subscribe({
-      next: () => {
-        this.refreshCurrentTimingState();
+      next: (response) => {
+        this.currentTimingState = response.state;
+        this.latestAvatarFeedback = response.avatarFeedback;
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al registrar el primer silencio.'; }
@@ -148,8 +151,9 @@ export class ExecutionComponent implements OnInit {
     if (!this.currentItemCode) return;
 
     this.executionService.registerSilence(this.sessionId, this.currentItemCode, 2).subscribe({
-      next: () => {
-        this.refreshCurrentTimingState();
+      next: (response) => {
+        this.currentTimingState = response.state;
+        this.latestAvatarFeedback = response.avatarFeedback;
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al registrar el segundo silencio.'; }

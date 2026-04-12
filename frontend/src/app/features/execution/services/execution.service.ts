@@ -27,6 +27,16 @@ export interface SilenceEvent {
   type: 'FIRST_SILENCE' | 'SECOND_SILENCE';
 }
 
+export interface AvatarFeedbackPayload {
+  messageCode: 'SILENCE_FIRST_PROMPT' | 'SILENCE_SECOND_PROMPT';
+  text: string;
+}
+
+export interface RegisterSilenceResponse {
+  state: ItemTimingState;
+  avatarFeedback: AvatarFeedbackPayload;
+}
+
 export interface ItemTimingState {
   sessionId: number;
   itemCode: string;
@@ -100,8 +110,8 @@ export class ExecutionService {
     );
   }
 
-  registerSilence(sessionId: number, itemCode: string, level: 1 | 2): Observable<ItemTimingState> {
-    return this.http.post<ItemTimingState>(
+  registerSilence(sessionId: number, itemCode: string, level: 1 | 2): Observable<RegisterSilenceResponse> {
+    return this.http.post<RegisterSilenceResponse>(
       `${this.executionUrl}/session/${sessionId}/item/${itemCode}/silence`,
       { level }
     );
