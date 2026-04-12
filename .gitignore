@@ -4,6 +4,7 @@
 # Builds
 **/dist
 **/build
+backend/data/*.json
 
 # Otros típicos
 .env

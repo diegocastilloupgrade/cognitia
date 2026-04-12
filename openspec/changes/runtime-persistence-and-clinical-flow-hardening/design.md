@@ -19,11 +19,12 @@ El estado runtime actual vive en memoria dentro del modulo de ejecucion backend.
 ## Decisions
 
 ### 1. Persistir runtime como agregado por sesion en almacenamiento durable
-Se persistira un agregado de runtime por `screening_session`, con `activeItemCode`, estado general, timestamps y estructura de timing/silencios por item. Esta decision reduce la dispersion de estado y facilita reconstruir una sesion completa con una sola lectura logica.
+En esta iteracion se persistira un agregado de runtime por `screening_session` en un store JSON durable de backend, con `activeItemCode`, estado general, timestamps y estructura de timing/silencios por item. Esta decision reduce la dispersion de estado y facilita reconstruir una sesion completa con una sola lectura logica sin introducir aun una dependencia de base de datos relacional adicional.
 
 Alternativas consideradas:
 - Persistir solo eventos y reconstruir siempre por replay: mas flexible, pero innecesariamente complejo para el estado actual del producto.
 - Mantener memoria y hacer snapshots periodicos: insuficiente para garantizar recuperacion simple y consistente.
+- Introducir ya una base de datos relacional completa: valida a medio plazo, pero excesiva para esta iteracion respecto al nivel de madurez actual del backend.
 
 ### 2. Mantener `item_results` como fuente de payload clinico y separar el estado runtime operacional
 Los payloads de resultado por item seguiran en `item_results`, mientras que el estado runtime persistido almacenara lo necesario para continuidad operacional. Esta separacion evita mezclar semantica clinica con estado transitorio de ejecucion.
@@ -69,6 +70,6 @@ Rollback: mantener feature flag o camino de compatibilidad temporal al runtime e
 
 ## Open Questions
 
-- ¿El runtime persistido debe vivir en una tabla dedicada (`session_runtime_state`) o como columna JSONB en `screening_sessions`?
+- ¿Cuándo conviene migrar el store JSON durable actual a una tabla dedicada o a una estrategia relacional/JSONB formal?
 - ¿Necesitamos persistir un historial completo de eventos runtime o basta con el estado consolidado + `item_results`?
 - ¿Qué politica exacta de reanudacion debe seguir frontend si encuentra una sesion en `EN_EJECUCION` sin item activo persistido?

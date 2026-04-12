@@ -1,6 +1,7 @@
 export interface EnvConfig {
   nodeEnv: string;
   port: number;
+  storeFilePath: string;
 }
 
 export function loadEnv(): EnvConfig {
@@ -9,5 +10,6 @@ export function loadEnv(): EnvConfig {
   return {
     nodeEnv: process.env.NODE_ENV ?? "development",
     port: Number.isNaN(port) ? 3000 : port,
+    storeFilePath: process.env.COGNITIA_STORE_FILE ?? "data/app-store.json",
   };
 }

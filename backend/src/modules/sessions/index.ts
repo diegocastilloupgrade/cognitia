@@ -1,17 +1,16 @@
 import { Router } from "express";
 import type { CreateSessionDto, ScreeningSession } from "./sessions.types";
+import { readStoreState, updateStoreState } from "../../shared/persistence/app-store";
+import { initializeRuntimeSession } from "../execution";
 
 export const sessionsRouter = Router();
-
-const sessions: ScreeningSession[] = [];
-let nextSessionId = 1;
 
 function parseId(value: string): number {
   return Number(value);
 }
 
 sessionsRouter.get("/", (_req, res) => {
-  res.json(sessions);
+  res.json(readStoreState().sessions);
 });
 
 sessionsRouter.post("/", (req, res) => {
@@ -26,7 +25,7 @@ sessionsRouter.post("/", (req, res) => {
     return;
   }
 
-  const hasActiveSession = sessions.some(
+  const hasActiveSession = readStoreState().sessions.some(
     (session) =>
       session.patientId === body.patientId &&
       (session.status === "BORRADOR" || session.status === "EN_EJECUCION")
@@ -40,14 +39,18 @@ sessionsRouter.post("/", (req, res) => {
     return;
   }
 
-  const session: ScreeningSession = {
-    id: nextSessionId++,
-    patientId: body.patientId,
-    createdByUserId: body.createdByUserId,
-    status: "BORRADOR",
-  };
+  const session = updateStoreState((store) => {
+    const nextSession: ScreeningSession = {
+      id: store.counters.nextSessionId++,
+      patientId: body.patientId as number,
+      createdByUserId: body.createdByUserId as number,
+      status: "BORRADOR",
+    };
 
-  sessions.push(session);
+    store.sessions.push(nextSession);
+    return nextSession;
+  });
+
   res.status(201).json(session);
 });
 
@@ -58,9 +61,15 @@ sessionsRouter.post("/:id/start", (req, res) => {
     return;
   }
 
-  const session = sessions.find((item) => item.id === id);
+  const existingSession = readStoreState().sessions.find((item) => item.id === id);
+  const session = existingSession ? { ...existingSession } : undefined;
   if (!session) {
     res.status(404).json({ message: "Session not found" });
+    return;
+  }
+
+  if (session.status === "EN_EJECUCION") {
+    res.json(session);
     return;
   }
 
@@ -71,12 +80,28 @@ sessionsRouter.post("/:id/start", (req, res) => {
     return;
   }
 
-  session.status = "EN_EJECUCION";
-  if (!session.startedAt) {
-    session.startedAt = new Date().toISOString();
+  const startedSession = updateStoreState((store) => {
+    const persisted = store.sessions.find((item) => item.id === id);
+    if (!persisted) {
+      return undefined;
+    }
+
+    persisted.status = "EN_EJECUCION";
+    if (!persisted.startedAt) {
+      persisted.startedAt = new Date().toISOString();
+    }
+
+    return { ...persisted };
+  });
+
+  if (!startedSession) {
+    res.status(404).json({ message: "Session not found" });
+    return;
   }
 
-  res.json(session);
+  initializeRuntimeSession(id);
+
+  res.json(startedSession);
 });
 
 sessionsRouter.post("/:id/complete", (req, res) => {
@@ -86,7 +111,7 @@ sessionsRouter.post("/:id/complete", (req, res) => {
     return;
   }
 
-  const session = sessions.find((item) => item.id === id);
+  const session = readStoreState().sessions.find((item) => item.id === id);
   if (!session) {
     res.status(404).json({ message: "Session not found" });
     return;
@@ -99,12 +124,32 @@ sessionsRouter.post("/:id/complete", (req, res) => {
     return;
   }
 
-  session.status = "COMPLETADA";
-  if (!session.finishedAt) {
-    session.finishedAt = new Date().toISOString();
+  const completedSession = updateStoreState((store) => {
+    const persisted = store.sessions.find((item) => item.id === id);
+    if (!persisted) {
+      return undefined;
+    }
+
+    persisted.status = "COMPLETADA";
+    if (!persisted.finishedAt) {
+      persisted.finishedAt = new Date().toISOString();
+    }
+
+    const runtime = store.runtimeSessions.find((item) => item.sessionId === id);
+    if (runtime) {
+      runtime.status = "COMPLETED";
+      runtime.activeItemCode = null;
+    }
+
+    return { ...persisted };
+  });
+
+  if (!completedSession) {
+    res.status(404).json({ message: "Session not found" });
+    return;
   }
 
-  res.json(session);
+  res.json(completedSession);
 });
 
 sessionsRouter.get("/:id", (req, res) => {
@@ -114,7 +159,7 @@ sessionsRouter.get("/:id", (req, res) => {
     return;
   }
 
-  const session = sessions.find((item) => item.id === id);
+  const session = readStoreState().sessions.find((item) => item.id === id);
   if (!session) {
     res.status(404).json({ message: "Session not found" });
     return;
