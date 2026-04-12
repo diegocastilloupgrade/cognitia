@@ -105,3 +105,31 @@ test("execution timing state returns 404 when missing", async (t) => {
   assert.equal(response.status, 404);
   assert.deepEqual(response.body, { message: "Timing state not found" });
 });
+
+test("execution runtime rejects events from inactive items", async (t) => {
+  const { server, baseUrl } = await startTestServer();
+  t.after(() => server.close());
+
+  const start31 = await jsonRequest(baseUrl, "/api/execution/session/2/item/3.1/start", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  assert.equal(start31.status, 201);
+
+  const start341 = await jsonRequest(baseUrl, "/api/execution/session/2/item/3.4.1/start", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  assert.equal(start341.status, 201);
+
+  const staleItemSilence = await jsonRequest(baseUrl, "/api/execution/session/2/item/3.1/silence", {
+    method: "POST",
+    body: JSON.stringify({ level: 1 }),
+  });
+
+  assert.equal(staleItemSilence.status, 409);
+  assert.equal(
+    (staleItemSilence.body as Record<string, unknown>).message,
+    "Runtime event rejected for item 3.1; active item is 3.4.1"
+  );
+});
