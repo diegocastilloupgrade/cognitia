@@ -19,3 +19,14 @@ export function getItemTimingConfig(itemCode: string): ItemTimingConfig {
     silenceThresholdSeconds: 5,
   };
 }
+
+export function getNextItemCode(itemCode: string): string | null {
+  const currentIndex = ITEM_TIMING_CONFIGS.findIndex((item) => item.itemCode === itemCode);
+
+  if (currentIndex < 0) {
+    return null;
+  }
+
+  const next = ITEM_TIMING_CONFIGS[currentIndex + 1];
+  return next ? next.itemCode : null;
+}

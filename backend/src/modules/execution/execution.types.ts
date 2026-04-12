@@ -26,3 +26,10 @@ export interface ItemTimingState {
   }>;
   completed: boolean;
 }
+
+export interface RuntimeSessionState {
+  sessionId: number;
+  status: "IN_PROGRESS" | "COMPLETED";
+  activeItemCode: string | null;
+  itemTimingStates: ItemTimingState[];
+}
