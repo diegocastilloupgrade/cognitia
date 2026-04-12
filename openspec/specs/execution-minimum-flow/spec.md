@@ -3,23 +3,20 @@
 ## ADDED Requirements
 
 ### Requirement: Flujo minimo de ejecucion por sesion
-Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de estimulos y registrar resultados simples por item mostrado.
+Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de estimulos y registrar resultados por sesion durante un flujo autonomo donde el clinico solo inicia la sesion y el motor de ejecucion avanza item a item automaticamente.
 
-#### Scenario: Abrir y comenzar ejecucion de sesion
-- GIVEN existe una sesion valida seleccionada
-- WHEN el usuario abre la pantalla de ejecucion e inicia la sesion
-- THEN el sistema habilita el recorrido de estimulos demo para esa sesion
+#### Scenario: Sesion se inicia y el motor controla la progresion
+- WHEN el frontend inicia una sesion valida
+- THEN el backend MUST establecer la sesion en ejecucion, activar el primer item y devolver el estado runtime inicial
 
-#### Scenario: Mostrar estimulos demo secuenciales
-- GIVEN la sesion esta en ejecucion
-- WHEN corresponde presentar el siguiente item
-- THEN el frontend visualiza el estimulo demo correspondiente desde assets
+#### Scenario: Runtime decide siguiente item sin mediacion manual
+- WHEN se finaliza un item con su payload de resultado
+- THEN el backend MUST evaluar el contexto del item y devolver el siguiente item activo o el cierre de sesion
 
-#### Scenario: Registrar resultado simple por item mostrado
-- GIVEN un estimulo fue mostrado durante la ejecucion
-- WHEN se captura el resultado simple del item
-- THEN el frontend envia el resultado a `/api/results/session/:id` asociado a la sesion activa
+#### Scenario: Frontend renderiza estimulo activo definido por backend
+- WHEN el backend actualiza el item activo runtime
+- THEN el frontend MUST mostrar el estimulo correspondiente y no decidir localmente el orden de navegacion
 
 ## ADDED Constraints
 - El flujo se limita a demostracion funcional de extremo a extremo.
-- No se definen en este cambio reglas completas de timing, silencio ni scoring real.
+- No se definen en este cambio reglas completas de scoring real ni persistencia definitiva de runtime.
