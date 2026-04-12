@@ -1,6 +1,8 @@
-# Execution
+## Purpose
 
-## ADDED Requirements
+Definir el flujo mínimo de ejecución de sesión en COGNITIA durante bootstrap, incluyendo navegación demo, registro simple de resultados y control manual de timing/silencios.
+
+## Requirements
 
 ### Requirement: REQ-EXECUTION-MIN-FLOW-1: Ejecucion minima de sesion con estimulos demo
 El sistema MUST permitir abrir una sesion, ejecutar estimulos demo y registrar resultados simples por sesion durante el flujo minimo, incluyendo un control manual baseline de timing por item y registro de silencios sobre el item activo mostrado.

@@ -1,6 +1,8 @@
-# Frontend
+## Purpose
 
-## ADDED Requirements
+Definir los requisitos base del frontend Angular para consumir la API mínima de COGNITIA y operar el flujo bootstrap, incluyendo UI manual de timing/silencios en ejecución.
+
+## Requirements
 
 ### Requirement: REQ-FRONTEND-MIN-FLOW-1: SPA Angular conectada al backend minimo
 El sistema MUST proveer una SPA Angular conectada al backend minimo para operar pacientes, sesiones y navegacion a ejecucion.

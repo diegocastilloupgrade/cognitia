@@ -1,6 +1,8 @@
-# Backend
+## Purpose
 
-## ADDED Requirements
+Definir los requisitos base del backend para el flujo bootstrap de COGNITIA, incluyendo APIs mínimas en memoria y manejo manual de timing/silencios por ítem.
+
+## Requirements
 
 ### Requirement: REQ-BACKEND-MIN-FLOW-1: API minima en memoria para COGNITIA
 El sistema MUST exponer una API REST minima en memoria para soportar pacientes, sesiones y resultados del flujo bootstrap de COGNITIA.
