@@ -65,6 +65,7 @@ describe('ExecutionComponent', () => {
     executionService.getRuntimeSessionState.and.returnValue(of({
       sessionId: 1,
       runtimeStatus: 'IN_PROGRESS',
+      recoveryStatus: 'READY',
       activeItem: {
         itemCode: '3.1',
         startedAt: '2026-04-10T00:02:00.000Z',
@@ -138,33 +139,27 @@ describe('ExecutionComponent', () => {
 
     expect(executionService.registerSilence).toHaveBeenCalledWith(1, '3.1', 1);
     expect(executionService.registerSilence).toHaveBeenCalled();
-    expect(executionService.completeItemTiming).toHaveBeenCalled();
+    expect(executionService.completeItemTiming).toHaveBeenCalledWith(1, '3.1', jasmine.objectContaining({
+      positionInSession: 1,
+      evaluatedOutcome: 'ACIERTO',
+      resultData: jasmine.objectContaining({
+        stimulusId: 'mv-01',
+      }),
+    }));
     expect(component.latestAvatarFeedback?.messageCode).toBe('SILENCE_FIRST_PROMPT');
   });
 
-  it('bootstraps runtime by starting first configured item when backend has no active item', () => {
-    executionService.getRuntimeSessionState.and.returnValues(
-      of({
-        sessionId: 1,
-        runtimeStatus: 'IN_PROGRESS',
-        activeItem: null,
-      }),
-      of({
-        sessionId: 1,
-        runtimeStatus: 'IN_PROGRESS',
-        activeItem: {
-          itemCode: '3.1',
-          startedAt: '2026-04-10T00:02:00.000Z',
-          durationSeconds: 60,
-          silenceThresholdSeconds: 5,
-        },
-      })
-    );
+  it('shows a safe error when runtime recovery is inconsistent', () => {
+    executionService.getRuntimeSessionState.and.returnValue(of({
+      sessionId: 1,
+      runtimeStatus: 'IN_PROGRESS',
+      recoveryStatus: 'MISSING_RUNTIME_STATE',
+      activeItem: null,
+    }));
 
-    executionService.startItemTiming.calls.reset();
+    component.loadRuntimeState();
 
-    component.ensureRuntimeBootstrapped();
-
-    expect(executionService.startItemTiming).toHaveBeenCalledWith(1, '3.1');
+    expect(component.error).toContain('no se puede recuperar');
+    expect(component.currentItemCode).toBe('');
   });
 });

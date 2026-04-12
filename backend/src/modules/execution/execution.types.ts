@@ -1,4 +1,4 @@
-import type { ItemCode, ItemResultDataByCode } from "../results/results.types";
+import type { EvaluatedOutcome, ItemCode, ItemResultDataByCode } from "../results/results.types";
 
 export interface ExecutionTask {
   id: string;
@@ -39,6 +39,7 @@ export interface RuntimeSessionState {
 export interface RuntimeSessionStateResponse {
   sessionId: number;
   runtimeStatus: RuntimeSessionState["status"];
+  recoveryStatus: "READY" | "NOT_STARTED" | "MISSING_RUNTIME_STATE" | "MISSING_ACTIVE_ITEM";
   activeItem: {
     itemCode: ItemCode;
     startedAt: string;
@@ -48,6 +49,8 @@ export interface RuntimeSessionStateResponse {
 }
 
 export interface FinalizeItemRequest<TCode extends ItemCode = ItemCode> {
+  positionInSession?: number;
+  evaluatedOutcome?: EvaluatedOutcome;
   resultData?: ItemResultDataByCode[TCode];
 }
 

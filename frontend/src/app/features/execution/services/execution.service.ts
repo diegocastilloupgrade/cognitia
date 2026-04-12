@@ -120,6 +120,7 @@ export interface FinalizeItemResponse {
 export interface RuntimeSessionStateResponse {
   sessionId: number;
   runtimeStatus: 'IN_PROGRESS' | 'COMPLETED';
+  recoveryStatus: 'READY' | 'NOT_STARTED' | 'MISSING_RUNTIME_STATE' | 'MISSING_ACTIVE_ITEM';
   activeItem: {
     itemCode: ItemCode;
     startedAt: string;
@@ -129,6 +130,8 @@ export interface RuntimeSessionStateResponse {
 }
 
 export interface FinalizeItemRequest<TCode extends ItemCode = ItemCode> {
+  positionInSession?: number;
+  evaluatedOutcome?: EvaluatedOutcome;
   resultData?: ItemResultDataByCode[TCode];
 }
 

@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import {
   AnyItemResultPayload,
   AvatarFeedbackPayload,
+  EvaluatedOutcome,
   ExecutionService,
   ItemCode,
   ItemResultData_3_1,
@@ -53,7 +54,6 @@ export class ExecutionComponent implements OnInit {
     this.loadSession();
     this.loadResults();
     this.loadSessionTimingStates();
-    this.loadRuntimeState();
   }
 
   loadSession(): void {
@@ -64,7 +64,7 @@ export class ExecutionComponent implements OnInit {
         this.session = data;
         this.loading = false;
         if (data.status === 'EN_EJECUCION') {
-          this.ensureRuntimeBootstrapped();
+          this.loadRuntimeState();
         }
       },
       error: () => {
@@ -92,6 +92,13 @@ export class ExecutionComponent implements OnInit {
     this.executionService.getRuntimeSessionState(this.sessionId).subscribe({
       next: (state) => {
         this.runtimeState = state;
+        if (state.recoveryStatus === 'MISSING_RUNTIME_STATE' || state.recoveryStatus === 'MISSING_ACTIVE_ITEM') {
+          this.error = 'La sesión está en ejecución pero su estado runtime no se puede recuperar de forma segura.';
+          this.currentItemCode = '';
+          this.currentTimingState = undefined;
+          return;
+        }
+
         this.currentItemCode = state.activeItem?.itemCode ?? '';
         this.refreshCurrentTimingState();
       },
@@ -103,51 +110,12 @@ export class ExecutionComponent implements OnInit {
     });
   }
 
-  getFirstConfiguredItemCode(): ItemCode | null {
-    return this.allStimuli[0]?.itemCode ?? null;
-  }
-
-  ensureRuntimeBootstrapped(): void {
-    this.executionService.getRuntimeSessionState(this.sessionId).subscribe({
-      next: (state) => {
-        this.runtimeState = state;
-
-        if (state.activeItem?.itemCode) {
-          this.currentItemCode = state.activeItem.itemCode;
-          this.refreshCurrentTimingState();
-          return;
-        }
-
-        const firstItemCode = this.getFirstConfiguredItemCode();
-        if (!firstItemCode) {
-          this.currentItemCode = '';
-          this.currentTimingState = undefined;
-          return;
-        }
-
-        this.executionService.startItemTiming(this.sessionId, firstItemCode).subscribe({
-          next: (timingState) => {
-            this.currentItemCode = timingState.itemCode;
-            this.currentTimingState = timingState;
-            this.loadRuntimeState();
-            this.loadSessionTimingStates();
-          },
-          error: () => {
-            this.error = 'Error al inicializar el runtime de la sesión.';
-          }
-        });
-      },
-      error: () => {
-        this.error = 'Error al consultar estado runtime de la sesión.';
-      }
-    });
-  }
-
   startSession(): void {
     this.executionService.startSession(this.sessionId).subscribe({
       next: (data) => {
         this.session = data;
-        this.ensureRuntimeBootstrapped();
+        this.loadRuntimeState();
+        this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al iniciar la sesión.'; }
     });
@@ -201,9 +169,12 @@ export class ExecutionComponent implements OnInit {
   }
 
   completeCurrentItemTiming(): void {
-    if (!this.currentItemCode) return;
+    const stimulus = this.currentStimulus;
+    if (!this.currentItemCode || !stimulus) return;
 
-    this.executionService.completeItemTiming(this.sessionId, this.currentItemCode).subscribe({
+    const payload = this.buildFinalizePayload(stimulus);
+
+    this.executionService.completeItemTiming(this.sessionId, this.currentItemCode, payload).subscribe({
       next: (response) => {
         this.currentTimingState = response.activeItem
           ? {
@@ -218,6 +189,7 @@ export class ExecutionComponent implements OnInit {
           : undefined;
 
         this.currentItemCode = response.activeItem?.itemCode ?? '';
+        this.loadResults();
         this.loadRuntimeState();
         this.loadSessionTimingStates();
       },
@@ -225,42 +197,52 @@ export class ExecutionComponent implements OnInit {
     });
   }
 
-  saveCurrentStimulusAsSeen(): void {
-    const stimulus = this.currentStimulus;
-    if (!stimulus || !this.session) return;
-
-    const positionInSession = this.results.length + 1;
-
-    const isItem31 = stimulus.itemCode === '3.1';
-    const fallbackData: ItemResultData_3_1 = {
-      stimulusId: stimulus.id,
-      recognizedText: '<TODO_ASR_O_TEXTO_DEMENTIRA_DE_MOMENTO>',
-      isCorrect: true,
-      responseTimeMs: 0,
-    };
-
-    let data = fallbackData;
-
-    if (isItem31) {
-      const data31: ItemResultData_3_1 = {
-        stimulusId: stimulus.id,
-        recognizedText: '<TODO_ASR_O_TEXTO_DEMENTIRA_DE_MOMENTO>',
-        isCorrect: true
-      };
-
-      data = data31;
+  buildFinalizePayload(stimulus: Stimulus): {
+    positionInSession: number;
+    evaluatedOutcome: EvaluatedOutcome;
+    resultData: any;
+  } {
+    switch (stimulus.itemCode) {
+      case '3.1':
+        return {
+          positionInSession: 1,
+          evaluatedOutcome: 'ACIERTO',
+          resultData: {
+            stimulusId: stimulus.id,
+            recognizedText: '<TODO_ASR_O_TEXTO_DEMENTIRA_DE_MOMENTO>',
+            isCorrect: true,
+            responseTimeMs: 0,
+          } satisfies ItemResultData_3_1,
+        };
+      case '3.4.1':
+        return {
+          positionInSession: 2,
+          evaluatedOutcome: 'NO_APLICA',
+          resultData: {
+            recognizedSequence: [stimulus.label ?? stimulus.id],
+            firstErrorIndex: null,
+          },
+        };
+      case '3.4.2':
+        return {
+          positionInSession: 3,
+          evaluatedOutcome: 'NO_APLICA',
+          resultData: {
+            errors: 0,
+            omissions: 0,
+          },
+        };
+      default:
+        return {
+          positionInSession: this.results.length + 1,
+          evaluatedOutcome: 'NO_APLICA',
+          resultData: {
+            recognizedText: '<TODO_ASR_O_TEXTO_DEMENTIRA_DE_MOMENTO>',
+            wasCompleted: true,
+            responseTimeMs: 0,
+          },
+        };
     }
-
-    this.executionService.saveStimulusResult({
-      sessionId: this.session.id,
-      itemCode: stimulus.itemCode,
-      positionInSession,
-      evaluatedOutcome: 'NO_APLICA',
-      data
-    }).subscribe({
-      next: (result) => { this.results = [...this.results, result]; },
-      error: () => { this.error = 'Error al registrar el estímulo.'; }
-    });
   }
 
   getResultStimulusId(result: AnyItemResultPayload): string {
