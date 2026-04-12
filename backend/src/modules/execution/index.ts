@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getItemTimingConfig } from "./execution.config";
+import { getItemTimingConfig, getNextItemCode } from "./execution.config";
 import type { ItemTimingState, RuntimeSessionState } from "./execution.types";
 
 export const executionRouter = Router();
@@ -92,6 +92,19 @@ function markItemCompleted(sessionId: number, itemCode: string): ItemTimingState
   }
 
   return state;
+}
+
+function buildActiveItemMetadata(state: ItemTimingState | null): Record<string, unknown> | null {
+  if (!state) {
+    return null;
+  }
+
+  return {
+    itemCode: state.itemCode,
+    startedAt: state.startedAt,
+    durationSeconds: state.durationSeconds,
+    silenceThresholdSeconds: state.silenceThresholdSeconds,
+  };
 }
 
 function assertActiveItem(sessionId: number, itemCode: string): string | null {
@@ -212,5 +225,26 @@ executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) =
     return;
   }
 
-  res.json(state);
+  const runtimeSession = findRuntimeSession(sessionId);
+  if (!runtimeSession) {
+    res.status(404).json({ message: "Active runtime session not found" });
+    return;
+  }
+
+  const nextItemCode = getNextItemCode(itemCode);
+  let activeItemState: ItemTimingState | null = null;
+
+  if (nextItemCode) {
+    activeItemState = upsertItemTimingState(sessionId, nextItemCode);
+  } else {
+    runtimeSession.status = "COMPLETED";
+    runtimeSession.activeItemCode = null;
+  }
+
+  res.json({
+    sessionId,
+    completedItem: state,
+    runtimeStatus: runtimeSession.status,
+    activeItem: buildActiveItemMetadata(activeItemState),
+  });
 });

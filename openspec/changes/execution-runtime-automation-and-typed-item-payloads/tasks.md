@@ -2,8 +2,8 @@
 
 - [x] 1.1 Refactorizar `backend/src/modules/execution` para centralizar en backend la propiedad de la máquina de estados de runtime (ítem activo, transiciones, finalización). [JIRA: COG-10]
 - [x] 1.2 Implementar validación de eventos runtime para aceptar solo eventos del ítem activo. [JIRA: COG-8]
-- [ ] 1.3 Implementar flujo de finalize-item que devuelva o bien el siguiente ítem activo o bien el estado de finalización de sesión. [JIRA: COG-7]
-- [ ] 1.4 Añadir/ajustar el contrato de respuesta runtime para incluir metadatos del ítem activo requeridos por el renderizado frontend. [JIRA: COG-9]
+- [x] 1.3 Implementar flujo de finalize-item que devuelva o bien el siguiente ítem activo o bien el estado de finalización de sesión. [JIRA: COG-7]
+- [x] 1.4 Añadir/ajustar el contrato de respuesta runtime para incluir metadatos del ítem activo requeridos por el renderizado frontend. [JIRA: COG-9]
 
 ## 2. Flujo mock de silencio y feedback del avatar
 

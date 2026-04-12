@@ -89,10 +89,20 @@ test("execution timing flow supports start, silence, complete and state queries"
   });
 
   assert.equal(complete.status, 200);
-  assert.equal((complete.body as Record<string, unknown>).completed, true);
+  assert.equal((complete.body as Record<string, unknown>).runtimeStatus, "IN_PROGRESS");
   assert.equal(
-    ((complete.body as Record<string, unknown>).silenceEvents as Array<unknown>).length,
+    ((complete.body as Record<string, unknown>).completedItem as Record<string, unknown>).completed,
+    true
+  );
+  assert.equal(
+    ((
+      (complete.body as Record<string, unknown>).completedItem as Record<string, unknown>
+    ).silenceEvents as Array<unknown>).length,
     2
+  );
+  assert.equal(
+    ((complete.body as Record<string, unknown>).activeItem as Record<string, unknown>).itemCode,
+    "3.4.1"
   );
 });
 
