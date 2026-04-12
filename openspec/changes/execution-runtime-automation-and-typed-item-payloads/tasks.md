@@ -14,10 +14,10 @@
 
 ## 3. Payloads tipados de resultado por ítem (3.1-3.7)
 
-- [ ] 3.1 Extraer definiciones de campos/tipos por ítem desde `docs/FUN_24DX1198_INTRAS_ASISTENTE_VIRTUAL_V3.docx` y mapearlas a interfaces TypeScript. [JIRA: COG-14]
-- [ ] 3.2 Introducir una unión discriminada de payloads de resultado por ítem reemplazando el genérico `data: any` en contratos compartidos/backend/frontend. [JIRA: COG-11]
-- [ ] 3.3 Actualizar modelos de petición/respuesta de finalize-item para usar payloads tipados por `itemCode`. [JIRA: COG-19]
-- [ ] 3.4 Actualizar guardas de compilación/tests para asegurar que formas de payload no soportadas fallen en compilación. [JIRA: COG-17]
+- [x] 3.1 Extraer definiciones de campos/tipos por ítem desde `docs/FUN_24DX1198_INTRAS_ASISTENTE_VIRTUAL_V3.docx` y mapearlas a interfaces TypeScript. [JIRA: COG-14]
+- [x] 3.2 Introducir una unión discriminada de payloads de resultado por ítem reemplazando el genérico `data: any` en contratos compartidos/backend/frontend. [JIRA: COG-11]
+- [x] 3.3 Actualizar modelos de petición/respuesta de finalize-item para usar payloads tipados por `itemCode`. [JIRA: COG-19]
+- [x] 3.4 Actualizar guardas de compilación/tests para asegurar que formas de payload no soportadas fallen en compilación. [JIRA: COG-17]
 
 ## 4. Cableado frontend de runtime autónomo
 

@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { getItemTimingConfig, getNextItemCode } from "./execution.config";
-import type { ItemTimingState, RuntimeSessionState } from "./execution.types";
+import type {
+  FinalizeItemRequest,
+  FinalizeItemResponse,
+  ItemTimingState,
+  RuntimeSessionState,
+} from "./execution.types";
+import type { ItemCode } from "../results/results.types";
 import { parseMockSilenceEvent } from "../integrations";
 
 export const executionRouter = Router();
@@ -19,7 +25,7 @@ function listItemTimingStatesBySessionId(sessionId: number): ItemTimingState[] {
   return findRuntimeSession(sessionId)?.itemTimingStates ?? [];
 }
 
-function findItemTimingState(sessionId: number, itemCode: string): ItemTimingState | undefined {
+function findItemTimingState(sessionId: number, itemCode: ItemCode): ItemTimingState | undefined {
   const session = findRuntimeSession(sessionId);
   return session?.itemTimingStates.find((state) => state.itemCode === itemCode);
 }
@@ -41,7 +47,7 @@ function getOrCreateRuntimeSession(sessionId: number): RuntimeSessionState {
   return state;
 }
 
-function upsertItemTimingState(sessionId: number, itemCode: string): ItemTimingState {
+function upsertItemTimingState(sessionId: number, itemCode: ItemCode): ItemTimingState {
   const session = getOrCreateRuntimeSession(sessionId);
   const config = getItemTimingConfig(itemCode);
   const state: ItemTimingState = {
@@ -68,7 +74,7 @@ function upsertItemTimingState(sessionId: number, itemCode: string): ItemTimingS
   return state;
 }
 
-function markItemCompleted(sessionId: number, itemCode: string): ItemTimingState | undefined {
+function markItemCompleted(sessionId: number, itemCode: ItemCode): ItemTimingState | undefined {
   const session = findRuntimeSession(sessionId);
   if (!session) {
     return undefined;
@@ -95,7 +101,9 @@ function markItemCompleted(sessionId: number, itemCode: string): ItemTimingState
   return state;
 }
 
-function buildActiveItemMetadata(state: ItemTimingState | null): Record<string, unknown> | null {
+function buildActiveItemMetadata(
+  state: ItemTimingState | null
+): FinalizeItemResponse["activeItem"] {
   if (!state) {
     return null;
   }
@@ -122,7 +130,7 @@ function buildSilenceFeedback(level: 1 | 2): { messageCode: string; text: string
   };
 }
 
-function assertActiveItem(sessionId: number, itemCode: string): string | null {
+function assertActiveItem(sessionId: number, itemCode: ItemCode): string | null {
   const session = findRuntimeSession(sessionId);
   if (!session) {
     return "Active runtime session not found";
@@ -144,7 +152,7 @@ executionRouter.get("/runtime", (_req, res) => {
 
 executionRouter.get("/session/:sessionId/item/:itemCode/state", (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
-  const { itemCode } = req.params;
+  const itemCode = req.params.itemCode as ItemCode;
 
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
@@ -173,7 +181,7 @@ executionRouter.get("/session/:sessionId/state", (req, res) => {
 
 executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
-  const { itemCode } = req.params;
+  const itemCode = req.params.itemCode as ItemCode;
 
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
@@ -186,7 +194,7 @@ executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
 
 executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
-  const { itemCode } = req.params;
+  const itemCode = req.params.itemCode as ItemCode;
   const body = req.body as { level?: unknown };
 
   if (Number.isNaN(sessionId)) {
@@ -240,7 +248,9 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
 
 executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
-  const { itemCode } = req.params;
+  const itemCode = req.params.itemCode as ItemCode;
+  const _body = req.body as FinalizeItemRequest;
+  void _body;
 
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
@@ -275,10 +285,12 @@ executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) =
     runtimeSession.activeItemCode = null;
   }
 
-  res.json({
+  const response: FinalizeItemResponse = {
     sessionId,
     completedItem: state,
     runtimeStatus: runtimeSession.status,
     activeItem: buildActiveItemMetadata(activeItemState),
-  });
+  };
+
+  res.json(response);
 });

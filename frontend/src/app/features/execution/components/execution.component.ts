@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
+  AnyItemResultPayload,
   AvatarFeedbackPayload,
   ExecutionService,
+  ItemCode,
   ItemResultData_3_1,
-  ItemResultPayload,
   ItemTimingState
 } from '../services/execution.service';
 import { ScreeningSession } from '../../../shared/models/session.models';
@@ -23,8 +24,8 @@ export class ExecutionComponent implements OnInit {
 
   visibleStimuli: Stimulus[] = STIMULI_DEMO;
   currentStimulusIndex = 0;
-  results: ItemResultPayload[] = [];
-  currentItemCode = '';
+  results: AnyItemResultPayload[] = [];
+  currentItemCode: ItemCode | '' = '';
   currentTimingState?: ItemTimingState;
   sessionTimingStates: ItemTimingState[] = [];
   latestAvatarFeedback: AvatarFeedbackPayload | null = null;
@@ -164,8 +165,23 @@ export class ExecutionComponent implements OnInit {
     if (!this.currentItemCode) return;
 
     this.executionService.completeItemTiming(this.sessionId, this.currentItemCode).subscribe({
-      next: () => {
-        this.refreshCurrentTimingState();
+      next: (response) => {
+        this.currentTimingState = response.activeItem
+          ? {
+              sessionId: this.sessionId,
+              itemCode: response.activeItem.itemCode,
+              startedAt: response.activeItem.startedAt,
+              durationSeconds: response.activeItem.durationSeconds,
+              silenceThresholdSeconds: response.activeItem.silenceThresholdSeconds,
+              silenceEvents: [],
+              completed: false,
+            }
+          : undefined;
+
+        if (response.activeItem?.itemCode) {
+          this.currentItemCode = response.activeItem.itemCode;
+        }
+
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al completar timing del ítem.'; }
@@ -179,7 +195,14 @@ export class ExecutionComponent implements OnInit {
     const positionInSession = this.currentStimulusIndex + 1;
 
     const isItem31 = stimulus.itemCode === '3.1';
-    let data: any = { stimulusId: stimulus.id };
+    const fallbackData: ItemResultData_3_1 = {
+      stimulusId: stimulus.id,
+      recognizedText: '<TODO_ASR_O_TEXTO_DEMENTIRA_DE_MOMENTO>',
+      isCorrect: true,
+      responseTimeMs: 0,
+    };
+
+    let data = fallbackData;
 
     if (isItem31) {
       const data31: ItemResultData_3_1 = {
@@ -188,14 +211,6 @@ export class ExecutionComponent implements OnInit {
         isCorrect: true
       };
 
-      const typedPayloadPreview: ItemResultPayload<ItemResultData_3_1> = {
-        sessionId: this.session.id,
-        itemCode: stimulus.itemCode,
-        positionInSession,
-        evaluatedOutcome: 'NO_APLICA',
-        data: data31
-      };
-      void typedPayloadPreview;
       data = data31;
     }
 
@@ -209,5 +224,14 @@ export class ExecutionComponent implements OnInit {
       next: (result) => { this.results = [...this.results, result]; },
       error: () => { this.error = 'Error al registrar el estímulo.'; }
     });
+  }
+
+  getResultStimulusId(result: AnyItemResultPayload): string {
+    if (result.itemCode !== '3.1') {
+      return '—';
+    }
+
+    const data = result.data as Partial<ItemResultData_3_1>;
+    return typeof data.stimulusId === 'string' ? data.stimulusId : '—';
   }
 }

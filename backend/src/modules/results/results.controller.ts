@@ -1,5 +1,5 @@
 import { ResultsService } from "./results.service";
-import type { CreateResultInput } from "./results.types";
+import type { AnyCreateResultInput } from "./results.types";
 
 export class ResultsController {
   constructor(private readonly resultsService: ResultsService) {}
@@ -8,7 +8,7 @@ export class ResultsController {
     return this.resultsService.listBySession(sessionId);
   }
 
-  create(input: CreateResultInput) {
+  create(input: AnyCreateResultInput) {
     return this.resultsService.create(input);
   }
 }

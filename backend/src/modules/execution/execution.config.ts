@@ -1,4 +1,5 @@
 import type { ItemTimingConfig } from "./execution.types";
+import type { ItemCode } from "../results/results.types";
 
 export const ITEM_TIMING_CONFIGS: ItemTimingConfig[] = [
   { itemCode: "3.1", durationSeconds: 60, silenceThresholdSeconds: 5 },
@@ -6,7 +7,7 @@ export const ITEM_TIMING_CONFIGS: ItemTimingConfig[] = [
   { itemCode: "3.4.2", durationSeconds: 45, silenceThresholdSeconds: 5 },
 ];
 
-export function getItemTimingConfig(itemCode: string): ItemTimingConfig {
+export function getItemTimingConfig(itemCode: ItemCode): ItemTimingConfig {
   const config = ITEM_TIMING_CONFIGS.find((item) => item.itemCode === itemCode);
 
   if (config) {
@@ -20,7 +21,7 @@ export function getItemTimingConfig(itemCode: string): ItemTimingConfig {
   };
 }
 
-export function getNextItemCode(itemCode: string): string | null {
+export function getNextItemCode(itemCode: ItemCode): ItemCode | null {
   const currentIndex = ITEM_TIMING_CONFIGS.findIndex((item) => item.itemCode === itemCode);
 
   if (currentIndex < 0) {

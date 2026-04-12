@@ -1,3 +1,5 @@
+import type { ItemCode, ItemResultDataByCode } from "../results/results.types";
+
 export interface ExecutionTask {
   id: string;
   sessionId: string;
@@ -9,14 +11,14 @@ export interface StartExecutionInput {
 }
 
 export interface ItemTimingConfig {
-  itemCode: string;
+  itemCode: ItemCode;
   durationSeconds: number;
   silenceThresholdSeconds: number;
 }
 
 export interface ItemTimingState {
   sessionId: number;
-  itemCode: string;
+  itemCode: ItemCode;
   startedAt: string;
   durationSeconds: number;
   silenceThresholdSeconds: number;
@@ -30,6 +32,22 @@ export interface ItemTimingState {
 export interface RuntimeSessionState {
   sessionId: number;
   status: "IN_PROGRESS" | "COMPLETED";
-  activeItemCode: string | null;
+  activeItemCode: ItemCode | null;
   itemTimingStates: ItemTimingState[];
+}
+
+export interface FinalizeItemRequest<TCode extends ItemCode = ItemCode> {
+  resultData?: ItemResultDataByCode[TCode];
+}
+
+export interface FinalizeItemResponse {
+  sessionId: number;
+  completedItem: ItemTimingState;
+  runtimeStatus: "IN_PROGRESS" | "COMPLETED";
+  activeItem: {
+    itemCode: ItemCode;
+    startedAt: string;
+    durationSeconds: number;
+    silenceThresholdSeconds: number;
+  } | null;
 }
