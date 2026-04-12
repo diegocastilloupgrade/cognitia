@@ -43,12 +43,10 @@
             class="stimulus-image"
           />
           <p class="stimulus-label">{{ stim.label || stim.id }}</p>
-          <p class="stimulus-counter">{{ currentStimulusIndex + 1 }} / {{ visibleStimuli.length }}</p>
+          <p class="stimulus-counter">Ítem activo: {{ currentItemCode || '—' }}</p>
         </ng-container>
 
         <div class="stimulus-controls">
-          <button (click)="showPreviousStimulus()" [disabled]="currentStimulusIndex === 0">Anterior</button>
-          <button (click)="showNextStimulus()" [disabled]="currentStimulusIndex === visibleStimuli.length - 1">Siguiente</button>
           <button (click)="saveCurrentStimulusAsSeen()">Registrar estímulo mostrado</button>
         </div>
       </ng-container>
@@ -78,7 +76,6 @@
       </dl>
 
       <div class="timing-controls">
-        <button (click)="startCurrentItemTiming()" [disabled]="!currentItemCode">Iniciar timing del ítem</button>
         <button (click)="registerFirstSilence()" [disabled]="!currentItemCode">Registrar 1er silencio</button>
         <button (click)="registerSecondSilence()" [disabled]="!currentItemCode">Registrar 2º silencio</button>
         <button (click)="completeCurrentItemTiming()" [disabled]="!currentItemCode">Completar timing del ítem</button>

@@ -97,7 +97,7 @@ export interface RegisterSilenceResponse {
 
 export interface ItemTimingState {
   sessionId: number;
-  itemCode: string;
+  itemCode: ItemCode;
   startedAt: string;
   durationSeconds: number;
   silenceThresholdSeconds: number;
@@ -108,6 +108,17 @@ export interface ItemTimingState {
 export interface FinalizeItemResponse {
   sessionId: number;
   completedItem: ItemTimingState;
+  runtimeStatus: 'IN_PROGRESS' | 'COMPLETED';
+  activeItem: {
+    itemCode: ItemCode;
+    startedAt: string;
+    durationSeconds: number;
+    silenceThresholdSeconds: number;
+  } | null;
+}
+
+export interface RuntimeSessionStateResponse {
+  sessionId: number;
   runtimeStatus: 'IN_PROGRESS' | 'COMPLETED';
   activeItem: {
     itemCode: ItemCode;
@@ -176,6 +187,12 @@ export class ExecutionService {
     return this.http.get<ItemTimingState[]>(`${this.executionUrl}/session/${sessionId}/state`);
   }
 
+  getRuntimeSessionState(sessionId: number): Observable<RuntimeSessionStateResponse> {
+    return this.http.get<RuntimeSessionStateResponse>(
+      `${this.executionUrl}/session/${sessionId}/runtime-state`
+    );
+  }
+
   startItemTiming(sessionId: number, itemCode: string): Observable<ItemTimingState> {
     return this.http.post<ItemTimingState>(
       `${this.executionUrl}/session/${sessionId}/item/${itemCode}/start`,
@@ -186,7 +203,16 @@ export class ExecutionService {
   registerSilence(sessionId: number, itemCode: string, level: 1 | 2): Observable<RegisterSilenceResponse> {
     return this.http.post<RegisterSilenceResponse>(
       `${this.executionUrl}/session/${sessionId}/item/${itemCode}/silence`,
-      { level }
+      {
+        level,
+        event: {
+          source: 'MOCK',
+          eventType: 'SILENCE_DETECTED',
+          sessionId,
+          itemCode,
+          occurredAt: new Date().toISOString(),
+        }
+      }
     );
   }
 

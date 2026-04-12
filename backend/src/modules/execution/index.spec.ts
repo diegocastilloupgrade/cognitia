@@ -93,6 +93,13 @@ test("execution timing flow supports start, silence, complete and state queries"
   assert.equal(sessionState.status, 200);
   assert.equal((sessionState.body as Array<unknown>).length, 1);
 
+  const runtimeStateBeforeComplete = await jsonRequest(baseUrl, "/api/execution/session/1/runtime-state");
+  assert.equal(runtimeStateBeforeComplete.status, 200);
+  assert.equal(
+    ((runtimeStateBeforeComplete.body as Record<string, unknown>).activeItem as Record<string, unknown>).itemCode,
+    "3.1"
+  );
+
   const complete = await jsonRequest(baseUrl, "/api/execution/session/1/item/3.1/complete", {
     method: "POST",
     body: JSON.stringify({}),
@@ -114,6 +121,13 @@ test("execution timing flow supports start, silence, complete and state queries"
     ((complete.body as Record<string, unknown>).activeItem as Record<string, unknown>).itemCode,
     "3.4.1"
   );
+
+  const runtimeStateAfterComplete = await jsonRequest(baseUrl, "/api/execution/session/1/runtime-state");
+  assert.equal(runtimeStateAfterComplete.status, 200);
+  assert.equal(
+    ((runtimeStateAfterComplete.body as Record<string, unknown>).activeItem as Record<string, unknown>).itemCode,
+    "3.4.1"
+  );
 });
 
 test("execution timing state returns 404 when missing", async (t) => {
@@ -124,6 +138,18 @@ test("execution timing state returns 404 when missing", async (t) => {
 
   assert.equal(response.status, 404);
   assert.deepEqual(response.body, { message: "Timing state not found" });
+});
+
+test("execution runtime-state returns null active item before runtime starts", async (t) => {
+  const { server, baseUrl } = await startTestServer();
+  t.after(() => server.close());
+
+  const response = await jsonRequest(baseUrl, "/api/execution/session/42/runtime-state");
+
+  assert.equal(response.status, 200);
+  assert.equal((response.body as Record<string, unknown>).sessionId, 42);
+  assert.equal((response.body as Record<string, unknown>).runtimeStatus, "IN_PROGRESS");
+  assert.equal((response.body as Record<string, unknown>).activeItem, null);
 });
 
 test("execution runtime rejects events from inactive items", async (t) => {

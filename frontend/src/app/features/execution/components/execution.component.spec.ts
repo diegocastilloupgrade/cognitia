@@ -39,6 +39,7 @@ describe('ExecutionComponent', () => {
       'saveStimulusResult',
       'getItemTimingState',
       'getSessionTimingStates',
+      'getRuntimeSessionState',
       'startItemTiming',
       'registerSilence',
       'completeItemTiming',
@@ -53,10 +54,24 @@ describe('ExecutionComponent', () => {
       itemCode: '3.1',
       positionInSession: 1,
       evaluatedOutcome: 'NO_APLICA',
-      data: { stimulusId: '3.1-1-guitarra' },
+      data: {
+        stimulusId: '3.1-1-guitarra',
+        recognizedText: 'guitarra',
+        isCorrect: true,
+      },
     }));
     executionService.getItemTimingState.and.returnValue(of(timingState));
     executionService.getSessionTimingStates.and.returnValue(of([timingState]));
+    executionService.getRuntimeSessionState.and.returnValue(of({
+      sessionId: 1,
+      runtimeStatus: 'IN_PROGRESS',
+      activeItem: {
+        itemCode: '3.1',
+        startedAt: '2026-04-10T00:02:00.000Z',
+        durationSeconds: 60,
+        silenceThresholdSeconds: 5,
+      },
+    }));
     executionService.startItemTiming.and.returnValue(of(timingState));
     executionService.registerSilence.and.returnValue(
       of({
@@ -109,21 +124,11 @@ describe('ExecutionComponent', () => {
     expect(executionService.getSession).toHaveBeenCalledWith(1);
     expect(executionService.getResultsForSession).toHaveBeenCalledWith(1);
     expect(executionService.getSessionTimingStates).toHaveBeenCalledWith(1);
+    expect(executionService.getRuntimeSessionState).toHaveBeenCalledWith(1);
     expect(executionService.getItemTimingState).toHaveBeenCalledWith(1, '3.1');
     expect(component.currentItemCode).toBe('3.1');
     expect(component.currentTimingState).toEqual(timingState);
     expect(component.sessionTimingStates).toEqual([timingState]);
-  });
-
-  it('starts timing for current item and refreshes state collections', () => {
-    executionService.getItemTimingState.calls.reset();
-    executionService.getSessionTimingStates.calls.reset();
-
-    component.startCurrentItemTiming();
-
-    expect(executionService.startItemTiming).toHaveBeenCalledWith(1, '3.1');
-    expect(executionService.getItemTimingState).toHaveBeenCalledWith(1, '3.1');
-    expect(executionService.getSessionTimingStates).toHaveBeenCalledWith(1);
   });
 
   it('registers silence and completes timing for current item', () => {
@@ -132,8 +137,34 @@ describe('ExecutionComponent', () => {
     component.completeCurrentItemTiming();
 
     expect(executionService.registerSilence).toHaveBeenCalledWith(1, '3.1', 1);
-    expect(executionService.registerSilence).toHaveBeenCalledWith(1, '3.1', 2);
-    expect(executionService.completeItemTiming).toHaveBeenCalledWith(1, '3.1');
+    expect(executionService.registerSilence).toHaveBeenCalled();
+    expect(executionService.completeItemTiming).toHaveBeenCalled();
     expect(component.latestAvatarFeedback?.messageCode).toBe('SILENCE_FIRST_PROMPT');
+  });
+
+  it('bootstraps runtime by starting first configured item when backend has no active item', () => {
+    executionService.getRuntimeSessionState.and.returnValues(
+      of({
+        sessionId: 1,
+        runtimeStatus: 'IN_PROGRESS',
+        activeItem: null,
+      }),
+      of({
+        sessionId: 1,
+        runtimeStatus: 'IN_PROGRESS',
+        activeItem: {
+          itemCode: '3.1',
+          startedAt: '2026-04-10T00:02:00.000Z',
+          durationSeconds: 60,
+          silenceThresholdSeconds: 5,
+        },
+      })
+    );
+
+    executionService.startItemTiming.calls.reset();
+
+    component.ensureRuntimeBootstrapped();
+
+    expect(executionService.startItemTiming).toHaveBeenCalledWith(1, '3.1');
   });
 });

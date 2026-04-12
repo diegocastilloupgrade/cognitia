@@ -21,14 +21,14 @@
 
 ## 4. Cableado frontend de runtime autónomo
 
-- [ ] 4.1 Actualizar el flujo de UI de ejecución para que el clínico solo inicie la sesión una vez y la progresión runtime siga las respuestas backend. [JIRA: COG-20]
-- [ ] 4.2 Eliminar o deshabilitar controles manuales de navegación/timing por ítem que entren en conflicto con el comportamiento autónomo de runtime. [JIRA: COG-16]
-- [ ] 4.3 Renderizar el estímulo activo estrictamente desde el estado de ítem activo y respuestas de transición que devuelva backend. [JIRA: COG-18]
-- [ ] 4.4 Asegurar que las peticiones runtime frontend sigan siendo compatibles con la ruta actual de productor mock de silencio. [JIRA: COG-24]
+- [x] 4.1 Actualizar el flujo de UI de ejecución para que el clínico solo inicie la sesión una vez y la progresión runtime siga las respuestas backend. [JIRA: COG-20]
+- [x] 4.2 Eliminar o deshabilitar controles manuales de navegación/timing por ítem que entren en conflicto con el comportamiento autónomo de runtime. [JIRA: COG-16]
+- [x] 4.3 Renderizar el estímulo activo estrictamente desde el estado de ítem activo y respuestas de transición que devuelva backend. [JIRA: COG-18]
+- [x] 4.4 Asegurar que las peticiones runtime frontend sigan siendo compatibles con la ruta actual de productor mock de silencio. [JIRA: COG-24]
 
 ## 5. Verificación y cobertura de regresión
 
-- [ ] 5.1 Ampliar tests de integración de ejecución backend para progresión autónoma, rechazo de eventos de ítem inválido y comportamiento de escalado por silencios. [JIRA: COG-22]
-- [ ] 5.2 Ampliar tests frontend para cubrir transiciones dirigidas por backend y renderizado del feedback de silencio del avatar. [JIRA: COG-21]
-- [ ] 5.3 Ejecutar suites de build/test de backend y frontend y corregir regresiones introducidas por la migración de payloads tipados. [JIRA: COG-25]
-- [ ] 5.4 Validar que el estado del change en OpenSpec queda apply-ready y documentar cualquier pregunta abierta restante en notas de implementación. [JIRA: COG-23]
+- [x] 5.1 Ampliar tests de integración de ejecución backend para progresión autónoma, rechazo de eventos de ítem inválido y comportamiento de escalado por silencios. [JIRA: COG-22]
+- [x] 5.2 Ampliar tests frontend para cubrir transiciones dirigidas por backend y renderizado del feedback de silencio del avatar. [JIRA: COG-21]
+- [x] 5.3 Ejecutar suites de build/test de backend y frontend y corregir regresiones introducidas por la migración de payloads tipados. [JIRA: COG-25]
+- [x] 5.4 Validar que el estado del change en OpenSpec queda apply-ready y documentar cualquier pregunta abierta restante en notas de implementación. [JIRA: COG-23]
