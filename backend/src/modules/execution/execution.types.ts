@@ -36,6 +36,17 @@ export interface RuntimeSessionState {
   itemTimingStates: ItemTimingState[];
 }
 
+export interface RuntimeSessionStateResponse {
+  sessionId: number;
+  runtimeStatus: RuntimeSessionState["status"];
+  activeItem: {
+    itemCode: ItemCode;
+    startedAt: string;
+    durationSeconds: number;
+    silenceThresholdSeconds: number;
+  } | null;
+}
+
 export interface FinalizeItemRequest<TCode extends ItemCode = ItemCode> {
   resultData?: ItemResultDataByCode[TCode];
 }

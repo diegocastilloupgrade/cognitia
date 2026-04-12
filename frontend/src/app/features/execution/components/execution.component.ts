@@ -6,7 +6,8 @@ import {
   ExecutionService,
   ItemCode,
   ItemResultData_3_1,
-  ItemTimingState
+  ItemTimingState,
+  RuntimeSessionStateResponse
 } from '../services/execution.service';
 import { ScreeningSession } from '../../../shared/models/session.models';
 import { Stimulus, STIMULI_DEMO } from '../stimuli.config';
@@ -22,16 +23,24 @@ export class ExecutionComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  visibleStimuli: Stimulus[] = STIMULI_DEMO;
-  currentStimulusIndex = 0;
+  allStimuli: Stimulus[] = STIMULI_DEMO;
   results: AnyItemResultPayload[] = [];
   currentItemCode: ItemCode | '' = '';
   currentTimingState?: ItemTimingState;
   sessionTimingStates: ItemTimingState[] = [];
   latestAvatarFeedback: AvatarFeedbackPayload | null = null;
+  runtimeState: RuntimeSessionStateResponse | null = null;
+
+  get visibleStimuli(): Stimulus[] {
+    if (!this.currentItemCode) {
+      return [];
+    }
+
+    return this.allStimuli.filter((stimulus) => stimulus.itemCode === this.currentItemCode);
+  }
 
   get currentStimulus(): Stimulus | null {
-    return this.visibleStimuli[this.currentStimulusIndex] ?? null;
+    return this.visibleStimuli[0] ?? null;
   }
 
   constructor(
@@ -43,9 +52,8 @@ export class ExecutionComponent implements OnInit {
     this.sessionId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadSession();
     this.loadResults();
-    this.updateCurrentItemCode();
     this.loadSessionTimingStates();
-    this.refreshCurrentTimingState();
+    this.loadRuntimeState();
   }
 
   loadSession(): void {
@@ -55,6 +63,9 @@ export class ExecutionComponent implements OnInit {
       next: (data) => {
         this.session = data;
         this.loading = false;
+        if (data.status === 'EN_EJECUCION') {
+          this.ensureRuntimeBootstrapped();
+        }
       },
       error: () => {
         this.error = 'Error al cargar la sesión.';
@@ -77,9 +88,67 @@ export class ExecutionComponent implements OnInit {
     });
   }
 
+  loadRuntimeState(): void {
+    this.executionService.getRuntimeSessionState(this.sessionId).subscribe({
+      next: (state) => {
+        this.runtimeState = state;
+        this.currentItemCode = state.activeItem?.itemCode ?? '';
+        this.refreshCurrentTimingState();
+      },
+      error: () => {
+        this.runtimeState = null;
+        this.currentItemCode = '';
+        this.currentTimingState = undefined;
+      }
+    });
+  }
+
+  getFirstConfiguredItemCode(): ItemCode | null {
+    return this.allStimuli[0]?.itemCode ?? null;
+  }
+
+  ensureRuntimeBootstrapped(): void {
+    this.executionService.getRuntimeSessionState(this.sessionId).subscribe({
+      next: (state) => {
+        this.runtimeState = state;
+
+        if (state.activeItem?.itemCode) {
+          this.currentItemCode = state.activeItem.itemCode;
+          this.refreshCurrentTimingState();
+          return;
+        }
+
+        const firstItemCode = this.getFirstConfiguredItemCode();
+        if (!firstItemCode) {
+          this.currentItemCode = '';
+          this.currentTimingState = undefined;
+          return;
+        }
+
+        this.executionService.startItemTiming(this.sessionId, firstItemCode).subscribe({
+          next: (timingState) => {
+            this.currentItemCode = timingState.itemCode;
+            this.currentTimingState = timingState;
+            this.loadRuntimeState();
+            this.loadSessionTimingStates();
+          },
+          error: () => {
+            this.error = 'Error al inicializar el runtime de la sesión.';
+          }
+        });
+      },
+      error: () => {
+        this.error = 'Error al consultar estado runtime de la sesión.';
+      }
+    });
+  }
+
   startSession(): void {
     this.executionService.startSession(this.sessionId).subscribe({
-      next: (data) => { this.session = data; },
+      next: (data) => {
+        this.session = data;
+        this.ensureRuntimeBootstrapped();
+      },
       error: () => { this.error = 'Error al iniciar la sesión.'; }
     });
   }
@@ -89,26 +158,6 @@ export class ExecutionComponent implements OnInit {
       next: (data) => { this.session = data; },
       error: () => { this.error = 'Error al finalizar la sesión.'; }
     });
-  }
-
-  showPreviousStimulus(): void {
-    if (this.currentStimulusIndex > 0) {
-      this.currentStimulusIndex--;
-      this.updateCurrentItemCode();
-      this.refreshCurrentTimingState();
-    }
-  }
-
-  showNextStimulus(): void {
-    if (this.currentStimulusIndex < this.visibleStimuli.length - 1) {
-      this.currentStimulusIndex++;
-      this.updateCurrentItemCode();
-      this.refreshCurrentTimingState();
-    }
-  }
-
-  updateCurrentItemCode(): void {
-    this.currentItemCode = this.currentStimulus?.itemCode ?? '';
   }
 
   refreshCurrentTimingState(): void {
@@ -123,18 +172,6 @@ export class ExecutionComponent implements OnInit {
     });
   }
 
-  startCurrentItemTiming(): void {
-    if (!this.currentItemCode) return;
-
-    this.executionService.startItemTiming(this.sessionId, this.currentItemCode).subscribe({
-      next: () => {
-        this.refreshCurrentTimingState();
-        this.loadSessionTimingStates();
-      },
-      error: () => { this.error = 'Error al iniciar timing del ítem.'; }
-    });
-  }
-
   registerFirstSilence(): void {
     if (!this.currentItemCode) return;
 
@@ -142,6 +179,7 @@ export class ExecutionComponent implements OnInit {
       next: (response) => {
         this.currentTimingState = response.state;
         this.latestAvatarFeedback = response.avatarFeedback;
+        this.loadRuntimeState();
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al registrar el primer silencio.'; }
@@ -155,6 +193,7 @@ export class ExecutionComponent implements OnInit {
       next: (response) => {
         this.currentTimingState = response.state;
         this.latestAvatarFeedback = response.avatarFeedback;
+        this.loadRuntimeState();
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al registrar el segundo silencio.'; }
@@ -178,10 +217,8 @@ export class ExecutionComponent implements OnInit {
             }
           : undefined;
 
-        if (response.activeItem?.itemCode) {
-          this.currentItemCode = response.activeItem.itemCode;
-        }
-
+        this.currentItemCode = response.activeItem?.itemCode ?? '';
+        this.loadRuntimeState();
         this.loadSessionTimingStates();
       },
       error: () => { this.error = 'Error al completar timing del ítem.'; }
@@ -192,7 +229,7 @@ export class ExecutionComponent implements OnInit {
     const stimulus = this.currentStimulus;
     if (!stimulus || !this.session) return;
 
-    const positionInSession = this.currentStimulusIndex + 1;
+    const positionInSession = this.results.length + 1;
 
     const isItem31 = stimulus.itemCode === '3.1';
     const fallbackData: ItemResultData_3_1 = {

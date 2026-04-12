@@ -4,6 +4,7 @@ import type {
   FinalizeItemRequest,
   FinalizeItemResponse,
   ItemTimingState,
+  RuntimeSessionStateResponse,
   RuntimeSessionState,
 } from "./execution.types";
 import type { ItemCode } from "../results/results.types";
@@ -177,6 +178,38 @@ executionRouter.get("/session/:sessionId/state", (req, res) => {
   }
 
   res.json(listItemTimingStatesBySessionId(sessionId));
+});
+
+executionRouter.get("/session/:sessionId/runtime-state", (req, res) => {
+  const sessionId = parseSessionId(req.params.sessionId);
+
+  if (Number.isNaN(sessionId)) {
+    res.status(400).json({ message: "Invalid sessionId" });
+    return;
+  }
+
+  const runtimeSession = findRuntimeSession(sessionId);
+  if (!runtimeSession) {
+    const response: RuntimeSessionStateResponse = {
+      sessionId,
+      runtimeStatus: "IN_PROGRESS",
+      activeItem: null,
+    };
+    res.json(response);
+    return;
+  }
+
+  const activeItemState = runtimeSession.activeItemCode
+    ? findItemTimingState(sessionId, runtimeSession.activeItemCode)
+    : undefined;
+
+  const response: RuntimeSessionStateResponse = {
+    sessionId,
+    runtimeStatus: runtimeSession.status,
+    activeItem: buildActiveItemMetadata(activeItemState ?? null),
+  };
+
+  res.json(response);
 });
 
 executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
