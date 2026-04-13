@@ -9,127 +9,26 @@ import type {
 } from "./execution.types";
 import type { EvaluatedOutcome, ItemCode } from "../results/results.types";
 import { parseMockSilenceEvent } from "../integrations";
-import { readStoreState, updateStoreState } from "../../shared/persistence/app-store";
-import type { ScreeningSession } from "../sessions/sessions.types";
 import {
   isValidDataForItemCode,
   listResultsBySessionId,
-  persistResult,
   resolveEvaluatedOutcome,
 } from "../results/results.store";
+import {
+  appendSilenceEvent,
+  countActiveRuntimeSessions,
+  finalizeItemAtomic,
+  getItemTimingState,
+  getRuntimeSession,
+  listItemTimingStates,
+  upsertItemTimingState,
+} from "../../shared/persistence/runtime.repository";
+import { findSessionById } from "../../shared/persistence/sessions.repository";
 
 export const executionRouter = Router();
 
 function parseSessionId(value: string): number {
   return Number(value);
-}
-
-function findSession(sessionId: number): ScreeningSession | undefined {
-  return readStoreState().sessions.find((session) => session.id === sessionId);
-}
-
-function findRuntimeSession(sessionId: number): RuntimeSessionState | undefined {
-  return readStoreState().runtimeSessions.find((session) => session.sessionId === sessionId);
-}
-
-function listItemTimingStatesBySessionId(sessionId: number): ItemTimingState[] {
-  return findRuntimeSession(sessionId)?.itemTimingStates ?? [];
-}
-
-function findItemTimingState(sessionId: number, itemCode: ItemCode): ItemTimingState | undefined {
-  const session = findRuntimeSession(sessionId);
-  return session?.itemTimingStates.find((state) => state.itemCode === itemCode);
-}
-
-function getOrCreateRuntimeSession(sessionId: number): RuntimeSessionState {
-  return updateStoreState((store) => {
-    const existing = store.runtimeSessions.find((session) => session.sessionId === sessionId);
-    if (existing) {
-      return existing;
-    }
-
-    const state: RuntimeSessionState = {
-      sessionId,
-      status: "IN_PROGRESS",
-      activeItemCode: null,
-      itemTimingStates: [],
-    };
-
-    store.runtimeSessions.push(state);
-    return state;
-  });
-}
-
-function upsertItemTimingState(sessionId: number, itemCode: ItemCode): ItemTimingState {
-  return updateStoreState((store) => {
-    let session = store.runtimeSessions.find((item) => item.sessionId === sessionId);
-    if (!session) {
-      session = {
-        sessionId,
-        status: "IN_PROGRESS",
-        activeItemCode: null,
-        itemTimingStates: [],
-      };
-      store.runtimeSessions.push(session);
-    }
-
-    const existing = session.itemTimingStates.find((item) => item.itemCode === itemCode);
-    if (existing && !existing.completed && session.activeItemCode === itemCode) {
-      return existing;
-    }
-
-    const config = getItemTimingConfig(itemCode);
-    const state: ItemTimingState = {
-      sessionId,
-      itemCode,
-      startedAt: new Date().toISOString(),
-      durationSeconds: config.durationSeconds,
-      silenceThresholdSeconds: config.silenceThresholdSeconds,
-      silenceEvents: [],
-      completed: false,
-    };
-
-    const existingIndex = session.itemTimingStates.findIndex((item) => item.itemCode === itemCode);
-    if (existingIndex >= 0) {
-      session.itemTimingStates[existingIndex] = state;
-    } else {
-      session.itemTimingStates.push(state);
-    }
-
-    session.activeItemCode = itemCode;
-    session.status = "IN_PROGRESS";
-
-    return state;
-  });
-}
-
-function markItemCompleted(sessionId: number, itemCode: ItemCode): ItemTimingState | undefined {
-  return updateStoreState((store) => {
-    const session = store.runtimeSessions.find((item) => item.sessionId === sessionId);
-    if (!session) {
-      return undefined;
-    }
-
-    const state = session.itemTimingStates.find((item) => item.itemCode === itemCode);
-    if (!state) {
-      return undefined;
-    }
-
-    state.completed = true;
-
-    if (session.activeItemCode === itemCode) {
-      session.activeItemCode = null;
-    }
-
-    const allCompleted =
-      session.itemTimingStates.length > 0 && session.itemTimingStates.every((item) => item.completed);
-
-    if (allCompleted) {
-      session.status = "COMPLETED";
-    }
-
-    return state;
-  });
 }
 
 function buildActiveItemMetadata(
@@ -161,12 +60,12 @@ function buildSilenceFeedback(level: 1 | 2): { messageCode: string; text: string
   };
 }
 
-function resolvePositionInSession(sessionId: number, itemCode: ItemCode, requestedPosition?: number): number {
+async function resolvePositionInSession(sessionId: number, itemCode: ItemCode, requestedPosition?: number): Promise<number> {
   if (typeof requestedPosition === "number" && requestedPosition > 0) {
     return requestedPosition;
   }
 
-  const existingResults = listResultsBySessionId(sessionId);
+  const existingResults = await listResultsBySessionId(sessionId);
   const existingForItem = existingResults.find((result) => result.itemCode === itemCode);
   if (existingForItem) {
     return existingForItem.positionInSession;
@@ -180,40 +79,8 @@ function resolvePositionInSession(sessionId: number, itemCode: ItemCode, request
   return existingResults.length + 1;
 }
 
-function persistFinalizeResult(input: {
-  sessionId: number;
-  itemCode: ItemCode;
-  requestedPosition?: number;
-  requestedOutcome?: EvaluatedOutcome;
-  resultData: unknown;
-}): { ok: true } | { ok: false; status: number; message: string } {
-  if (!isValidDataForItemCode(input.itemCode, input.resultData)) {
-    return { ok: false, status: 400, message: "resultData payload shape does not match itemCode" };
-  }
-
-  const evaluatedOutcome = resolveEvaluatedOutcome({
-    itemCode: input.itemCode,
-    evaluatedOutcome: input.requestedOutcome ?? "NO_APLICA",
-    data: input.resultData,
-  });
-
-  if (!evaluatedOutcome) {
-    return { ok: false, status: 400, message: "evaluatedOutcome is invalid for finalize-item" };
-  }
-
-  persistResult({
-    sessionId: input.sessionId,
-    itemCode: input.itemCode,
-    positionInSession: resolvePositionInSession(input.sessionId, input.itemCode, input.requestedPosition),
-    evaluatedOutcome,
-    data: input.resultData,
-  });
-
-  return { ok: true };
-}
-
-function assertActiveItem(sessionId: number, itemCode: ItemCode): string | null {
-  const session = findRuntimeSession(sessionId);
+async function assertActiveItem(sessionId: number, itemCode: ItemCode): Promise<string | null> {
+  const session = await getRuntimeSession(sessionId);
   if (!session) {
     return "Active runtime session not found";
   }
@@ -225,9 +92,9 @@ function assertActiveItem(sessionId: number, itemCode: ItemCode): string | null 
   return null;
 }
 
-function resolveRecoveryStatus(sessionId: number): RuntimeSessionStateResponse["recoveryStatus"] {
-  const session = findSession(sessionId);
-  const runtimeSession = findRuntimeSession(sessionId);
+async function resolveRecoveryStatus(sessionId: number): Promise<RuntimeSessionStateResponse["recoveryStatus"]> {
+  const session = await findSessionById(sessionId);
+  const runtimeSession = await getRuntimeSession(sessionId);
 
   if (!session || session.status === "BORRADOR") {
     return "NOT_STARTED";
@@ -244,27 +111,34 @@ function resolveRecoveryStatus(sessionId: number): RuntimeSessionStateResponse["
   return "READY";
 }
 
-export function initializeRuntimeSession(sessionId: number): RuntimeSessionState {
-  const existing = findRuntimeSession(sessionId);
+export async function initializeRuntimeSession(sessionId: number): Promise<RuntimeSessionState> {
+  const existing = await getRuntimeSession(sessionId);
   if (existing?.activeItemCode || existing?.status === "COMPLETED") {
     return existing;
   }
 
   const firstItemCode = ITEM_TIMING_CONFIGS[0]?.itemCode ?? getItemTimingConfig("3.1").itemCode;
-  upsertItemTimingState(sessionId, firstItemCode);
+  const config = getItemTimingConfig(firstItemCode);
+  await upsertItemTimingState({
+    sessionId,
+    itemCode: firstItemCode,
+    startedAt: new Date().toISOString(),
+    durationSeconds: config.durationSeconds,
+    silenceThresholdSeconds: config.silenceThresholdSeconds,
+  });
 
-  return findRuntimeSession(sessionId) as RuntimeSessionState;
+  return (await getRuntimeSession(sessionId)) as RuntimeSessionState;
 }
 
-executionRouter.get("/runtime", (_req, res) => {
-  const store = readStoreState();
+executionRouter.get("/runtime", async (_req, res) => {
+  const activeSessions = await countActiveRuntimeSessions();
   res.json({
     status: "ready",
-    activeSessions: store.runtimeSessions.filter((session) => session.status === "IN_PROGRESS").length,
+    activeSessions,
   });
 });
 
-executionRouter.get("/session/:sessionId/item/:itemCode/state", (req, res) => {
+executionRouter.get("/session/:sessionId/item/:itemCode/state", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   const itemCode = req.params.itemCode as ItemCode;
 
@@ -273,7 +147,7 @@ executionRouter.get("/session/:sessionId/item/:itemCode/state", (req, res) => {
     return;
   }
 
-  const state = findItemTimingState(sessionId, itemCode);
+  const state = await getItemTimingState(sessionId, itemCode);
   if (!state) {
     res.status(404).json({ message: "Timing state not found" });
     return;
@@ -282,7 +156,7 @@ executionRouter.get("/session/:sessionId/item/:itemCode/state", (req, res) => {
   res.json(state);
 });
 
-executionRouter.get("/session/:sessionId/state", (req, res) => {
+executionRouter.get("/session/:sessionId/state", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
 
   if (Number.isNaN(sessionId)) {
@@ -290,10 +164,10 @@ executionRouter.get("/session/:sessionId/state", (req, res) => {
     return;
   }
 
-  res.json(listItemTimingStatesBySessionId(sessionId));
+  res.json(await listItemTimingStates(sessionId));
 });
 
-executionRouter.get("/session/:sessionId/runtime-state", (req, res) => {
+executionRouter.get("/session/:sessionId/runtime-state", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
 
   if (Number.isNaN(sessionId)) {
@@ -301,11 +175,11 @@ executionRouter.get("/session/:sessionId/runtime-state", (req, res) => {
     return;
   }
 
-  const runtimeSession = findRuntimeSession(sessionId);
-  const recoveryStatus = resolveRecoveryStatus(sessionId);
+  const runtimeSession = await getRuntimeSession(sessionId);
+  const recoveryStatus = await resolveRecoveryStatus(sessionId);
 
   const activeItemState = runtimeSession?.activeItemCode
-    ? findItemTimingState(sessionId, runtimeSession.activeItemCode)
+    ? await getItemTimingState(sessionId, runtimeSession.activeItemCode)
     : undefined;
 
   const response: RuntimeSessionStateResponse = {
@@ -318,7 +192,7 @@ executionRouter.get("/session/:sessionId/runtime-state", (req, res) => {
   res.json(response);
 });
 
-executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
+executionRouter.post("/session/:sessionId/item/:itemCode/start", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   const itemCode = req.params.itemCode as ItemCode;
 
@@ -327,16 +201,23 @@ executionRouter.post("/session/:sessionId/item/:itemCode/start", (req, res) => {
     return;
   }
 
-  if (!findSession(sessionId)) {
+  if (!(await findSessionById(sessionId))) {
     res.status(404).json({ message: "Session not found" });
     return;
   }
 
-  const state = upsertItemTimingState(sessionId, itemCode);
+  const config = getItemTimingConfig(itemCode);
+  const state = await upsertItemTimingState({
+    sessionId,
+    itemCode,
+    startedAt: new Date().toISOString(),
+    durationSeconds: config.durationSeconds,
+    silenceThresholdSeconds: config.silenceThresholdSeconds,
+  });
   res.status(201).json(state);
 });
 
-executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) => {
+executionRouter.post("/session/:sessionId/item/:itemCode/silence", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   const itemCode = req.params.itemCode as ItemCode;
   const body = req.body as { level?: unknown };
@@ -352,7 +233,7 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
     return;
   }
 
-  const state = findItemTimingState(sessionId, itemCode);
+  const state = await getItemTimingState(sessionId, itemCode);
   if (!state || state.completed) {
     res.status(404).json({ message: "Active timing state not found" });
     return;
@@ -375,7 +256,7 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
     return;
   }
 
-  const activeItemError = assertActiveItem(sessionId, itemCode);
+  const activeItemError = await assertActiveItem(sessionId, itemCode);
   if (activeItemError) {
     res.status(409).json({ message: activeItemError });
     return;
@@ -396,19 +277,10 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
 
   const silenceLevel = expectedLevel as 1 | 2;
 
-  const updatedState = updateStoreState((store) => {
-    const runtimeSession = store.runtimeSessions.find((item) => item.sessionId === sessionId);
-    const persistedState = runtimeSession?.itemTimingStates.find((item) => item.itemCode === itemCode);
-    if (!persistedState) {
-      return undefined;
-    }
-
-    persistedState.silenceEvents.push({
-      occurredAt: new Date().toISOString(),
-      type: silenceLevel === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
-    });
-
-    return persistedState;
+  const updatedState = await appendSilenceEvent({
+    sessionId,
+    itemCode,
+    eventType: silenceLevel === 1 ? "FIRST_SILENCE" : "SECOND_SILENCE",
   });
 
   if (!updatedState) {
@@ -422,7 +294,7 @@ executionRouter.post("/session/:sessionId/item/:itemCode/silence", (req, res) =>
   });
 });
 
-executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) => {
+executionRouter.post("/session/:sessionId/item/:itemCode/complete", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   const itemCode = req.params.itemCode as ItemCode;
   const body = req.body as FinalizeItemRequest;
@@ -432,16 +304,16 @@ executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) =
     return;
   }
 
-  if (!findSession(sessionId)) {
+  if (!(await findSessionById(sessionId))) {
     res.status(404).json({ message: "Session not found" });
     return;
   }
 
-  const existingState = findItemTimingState(sessionId, itemCode);
+  const existingState = await getItemTimingState(sessionId, itemCode);
   if (existingState?.completed) {
-    const runtimeSession = findRuntimeSession(sessionId);
+    const runtimeSession = await getRuntimeSession(sessionId);
     const activeItemState = runtimeSession?.activeItemCode
-      ? findItemTimingState(sessionId, runtimeSession.activeItemCode)
+      ? await getItemTimingState(sessionId, runtimeSession.activeItemCode)
       : null;
 
     const response: FinalizeItemResponse = {
@@ -455,67 +327,64 @@ executionRouter.post("/session/:sessionId/item/:itemCode/complete", (req, res) =
     return;
   }
 
-  const activeItemError = assertActiveItem(sessionId, itemCode);
+  const activeItemError = await assertActiveItem(sessionId, itemCode);
   if (activeItemError) {
     res.status(409).json({ message: activeItemError });
     return;
   }
 
+  // Resolve result payload outside the transaction (validation + position query)
+  let resultPayload: { positionInSession: number; evaluatedOutcome: EvaluatedOutcome; data: unknown } | null = null;
   if (body.resultData !== undefined) {
-    const persistedResult = persistFinalizeResult({
-      sessionId,
-      itemCode,
-      requestedPosition: body.positionInSession,
-      requestedOutcome: body.evaluatedOutcome,
-      resultData: body.resultData,
-    });
-
-    if (!persistedResult.ok) {
-      res.status(persistedResult.status).json({ message: persistedResult.message });
+    if (!isValidDataForItemCode(itemCode, body.resultData)) {
+      res.status(400).json({ message: "resultData payload shape does not match itemCode" });
       return;
     }
-  }
 
-  const state = markItemCompleted(sessionId, itemCode);
-  if (!state) {
-    res.status(404).json({ message: "Timing state not found" });
-    return;
-  }
+    const evaluatedOutcome = resolveEvaluatedOutcome({
+      itemCode,
+      evaluatedOutcome: body.evaluatedOutcome ?? "NO_APLICA",
+      data: body.resultData,
+    });
 
-  const runtimeSession = findRuntimeSession(sessionId);
-  if (!runtimeSession) {
-    res.status(404).json({ message: "Active runtime session not found" });
-    return;
+    if (!evaluatedOutcome) {
+      res.status(400).json({ message: "evaluatedOutcome is invalid for finalize-item" });
+      return;
+    }
+
+    const positionInSession = await resolvePositionInSession(sessionId, itemCode, body.positionInSession);
+    resultPayload = { positionInSession, evaluatedOutcome, data: body.resultData };
   }
 
   const nextItemCode = getNextItemCode(itemCode);
-  let activeItemState: ItemTimingState | null = null;
-
-  if (nextItemCode) {
-    activeItemState = upsertItemTimingState(sessionId, nextItemCode);
-  } else {
-    updateStoreState((store) => {
-      const persistedRuntime = store.runtimeSessions.find((item) => item.sessionId === sessionId);
-      if (persistedRuntime) {
-        persistedRuntime.status = "COMPLETED";
-        persistedRuntime.activeItemCode = null;
+  const nextItem = nextItemCode
+    ? {
+        itemCode: nextItemCode,
+        startedAt: new Date().toISOString(),
+        durationSeconds: getItemTimingConfig(nextItemCode).durationSeconds,
+        silenceThresholdSeconds: getItemTimingConfig(nextItemCode).silenceThresholdSeconds,
       }
+    : null;
 
-      const persistedSession = store.sessions.find((item) => item.id === sessionId);
-      if (persistedSession && persistedSession.status === "EN_EJECUCION") {
-        persistedSession.status = "COMPLETADA";
-        if (!persistedSession.finishedAt) {
-          persistedSession.finishedAt = new Date().toISOString();
-        }
-      }
-    });
+  let completedState: ItemTimingState;
+  let nextItemState: ItemTimingState | null;
+  try {
+    ({ completedState, nextItemState } = await finalizeItemAtomic({
+      sessionId,
+      itemCode,
+      result: resultPayload,
+      nextItem,
+    }));
+  } catch {
+    res.status(404).json({ message: "Item timing state not found" });
+    return;
   }
 
   const response: FinalizeItemResponse = {
     sessionId,
-    completedItem: state,
+    completedItem: completedState,
     runtimeStatus: nextItemCode ? "IN_PROGRESS" : "COMPLETED",
-    activeItem: buildActiveItemMetadata(activeItemState),
+    activeItem: buildActiveItemMetadata(nextItemState),
   };
 
   res.json(response);

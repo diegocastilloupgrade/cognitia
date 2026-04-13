@@ -1,20 +1,24 @@
 import { Router } from "express";
-import type { Patient } from "./patients.types";
+import {
+  createPatient,
+  deactivatePatient,
+  findPatientById,
+  listPatients,
+  updatePatient,
+} from "../../shared/persistence/patients.repository";
 
 export const patientsRouter = Router();
-
-const patients: Patient[] = [];
-let nextPatientId = 1;
 
 function parseId(value: string): number {
   return Number(value);
 }
 
-patientsRouter.get("/", (_req, res) => {
+patientsRouter.get("/", async (_req, res) => {
+  const patients = await listPatients();
   res.json(patients);
 });
 
-patientsRouter.post("/", (req, res) => {
+patientsRouter.post("/", async (req, res) => {
   const body = req.body as Record<string, unknown>;
   const fullName =
     typeof body.fullName === "string"
@@ -32,28 +36,26 @@ patientsRouter.post("/", (req, res) => {
     return;
   }
 
-  const patient: Patient = {
-    id: nextPatientId++,
+  const patient = await createPatient({
     fullName,
     birthDate,
     sex: typeof body.sex === "string" ? body.sex : undefined,
     internalCode:
       typeof body.internalCode === "string" ? body.internalCode : undefined,
     active: true,
-  };
+  });
 
-  patients.push(patient);
   res.status(201).json(patient);
 });
 
-patientsRouter.get("/:id", (req, res) => {
+patientsRouter.get("/:id", async (req, res) => {
   const id = parseId(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ message: "Invalid patient id" });
     return;
   }
 
-  const patient = patients.find((item) => item.id === id);
+  const patient = await findPatientById(id);
   if (!patient) {
     res.status(404).json({ message: "Patient not found" });
     return;
@@ -62,52 +64,48 @@ patientsRouter.get("/:id", (req, res) => {
   res.json(patient);
 });
 
-patientsRouter.put("/:id", (req, res) => {
+patientsRouter.put("/:id", async (req, res) => {
   const id = parseId(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ message: "Invalid patient id" });
     return;
   }
 
-  const patient = patients.find((item) => item.id === id);
-  if (!patient) {
+  const current = await findPatientById(id);
+  if (!current) {
     res.status(404).json({ message: "Patient not found" });
     return;
   }
 
   const body = req.body as Record<string, unknown>;
-  if (typeof body.fullName === "string" && body.fullName.trim()) {
-    patient.fullName = body.fullName.trim();
-  }
-  if (typeof body.birthDate === "string" && body.birthDate.trim()) {
-    patient.birthDate = body.birthDate.trim();
-  }
-  if (typeof body.sex === "string") {
-    patient.sex = body.sex;
-  }
-  if (typeof body.internalCode === "string") {
-    patient.internalCode = body.internalCode;
-  }
-  if (typeof body.active === "boolean") {
-    patient.active = body.active;
+  const patient = await updatePatient(id, {
+    fullName: typeof body.fullName === "string" && body.fullName.trim() ? body.fullName.trim() : undefined,
+    birthDate: typeof body.birthDate === "string" && body.birthDate.trim() ? body.birthDate.trim() : undefined,
+    sex: typeof body.sex === "string" ? body.sex : undefined,
+    internalCode: typeof body.internalCode === "string" ? body.internalCode : undefined,
+    active: typeof body.active === "boolean" ? body.active : undefined,
+  });
+
+  if (!patient) {
+    res.status(404).json({ message: "Patient not found" });
+    return;
   }
 
   res.json(patient);
 });
 
-patientsRouter.delete("/:id", (req, res) => {
+patientsRouter.delete("/:id", async (req, res) => {
   const id = parseId(req.params.id);
   if (Number.isNaN(id)) {
     res.status(400).json({ message: "Invalid patient id" });
     return;
   }
 
-  const patient = patients.find((item) => item.id === id);
+  const patient = await deactivatePatient(id);
   if (!patient) {
     res.status(404).json({ message: "Patient not found" });
     return;
   }
 
-  patient.active = false;
   res.json(patient);
 });

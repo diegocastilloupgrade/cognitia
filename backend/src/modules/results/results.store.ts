@@ -1,4 +1,4 @@
-import { readStoreState, updateStoreState } from "../../shared/persistence/app-store";
+import { listResultsBySession, upsertResult } from "../../shared/persistence/results.repository";
 import type {
   AnyCreateResultInput,
   EvaluatedOutcome,
@@ -97,8 +97,8 @@ export function resolveEvaluatedOutcome(input: {
   return undefined;
 }
 
-export function listResultsBySessionId(sessionId: number): SessionResult[] {
-  return readStoreState().results.filter((item) => item.sessionId === sessionId);
+export async function listResultsBySessionId(sessionId: number): Promise<SessionResult[]> {
+  return listResultsBySession(sessionId);
 }
 
 function extractResponseTimeMs(data: unknown): number | null {
@@ -143,8 +143,8 @@ export function buildSessionReviewSummary(results: SessionResult[]): SessionRevi
   };
 }
 
-export function buildSessionReviewPayload(sessionId: number): SessionReviewPayload {
-  const results = listResultsBySessionId(sessionId);
+export async function buildSessionReviewPayload(sessionId: number): Promise<SessionReviewPayload> {
+  const results = await listResultsBySessionId(sessionId);
 
   return {
     sessionId,
@@ -154,29 +154,9 @@ export function buildSessionReviewPayload(sessionId: number): SessionReviewPaylo
 }
 
 export function persistResult(input: AnyCreateResultInput): SessionResult {
-  return updateStoreState((store) => {
-    const existing = store.results.find(
-      (item) => item.sessionId === input.sessionId && item.itemCode === input.itemCode
-    );
+  throw new Error("persistResult sync API was replaced. Use persistResultAsync.");
+}
 
-    if (existing) {
-      existing.positionInSession = input.positionInSession;
-      existing.evaluatedOutcome = input.evaluatedOutcome;
-      existing.data = input.data;
-      return existing;
-    }
-
-    const result: SessionResult = {
-      id: store.counters.nextResultId++,
-      sessionId: input.sessionId,
-      itemCode: input.itemCode,
-      positionInSession: input.positionInSession,
-      evaluatedOutcome: input.evaluatedOutcome,
-      data: input.data,
-      createdAt: new Date().toISOString(),
-    };
-
-    store.results.push(result);
-    return result;
-  });
+export async function persistResultAsync(input: AnyCreateResultInput): Promise<SessionResult> {
+  return upsertResult(input);
 }
