@@ -3,10 +3,10 @@
 ## ADDED Requirements
 
 ### Requirement: Flujo minimo de ejecucion por sesion
-Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de estimulos y registrar resultados por sesion durante un flujo autonomo donde el clinico solo inicia la sesion y el motor de ejecucion avanza item a item automaticamente, con capacidad de recuperar y continuar la ejecucion si la vista o el backend se reinician, y dejando los artefactos de resultados necesarios para una revisión clínica posterior.
+Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de estimulos y registrar resultados por sesion durante un flujo autonomo donde el clinico solo inicia la sesion y el motor de ejecucion avanza item a item automaticamente, con capacidad de recuperar y continuar la ejecucion si la vista o el backend se reinician, dejando los artefactos de resultados necesarios para una revisión clínica posterior, y con todos los endpoints de ejecución protegidos por autenticación.
 
 #### Scenario: Sesion se inicia y el motor controla la progresion
-- WHEN el frontend inicia una sesion valida
+- WHEN el frontend inicia una sesion valida con token válido
 - THEN el backend MUST establecer la sesion en ejecucion, activar el primer item, persistir el runtime inicial y devolver su estado
 
 #### Scenario: Runtime decide siguiente item sin mediacion manual
@@ -24,6 +24,10 @@ Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de es
 #### Scenario: Sesion completada queda lista para revisión
 - WHEN el runtime finaliza el último item de la sesión
 - THEN el sistema MUST garantizar que los resultados persistidos de la sesión estén disponibles para consumo inmediato de revisión clínica
+
+#### Scenario: Endpoint de ejecución rechaza petición sin token
+- WHEN se envía una petición a cualquier endpoint de ejecución sin cabecera de autorización válida
+- THEN el backend MUST responder con HTTP 401 sin procesar la operación
 
 ## ADDED Constraints
 - El flujo se limita a demostracion funcional de extremo a extremo.
