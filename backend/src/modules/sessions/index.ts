@@ -3,10 +3,9 @@ import type { CreateSessionDto, ScreeningSession } from "./sessions.types";
 import { initializeRuntimeSession } from "../execution";
 import {
   completeSession,
-  createSession,
+  createSessionIfNoOpen,
   findSessionById,
   listSessions,
-  patientHasActiveSession,
   startSession,
 } from "../../shared/persistence/sessions.repository";
 import { completeRuntimeSession } from "../../shared/persistence/runtime.repository";
@@ -33,20 +32,15 @@ sessionsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const hasActiveSession = await patientHasActiveSession(body.patientId);
-
-  if (hasActiveSession) {
-    res.status(409).json({
-      message:
-        "Patient already has an active session in BORRADOR or EN_EJECUCION",
-    });
-    return;
-  }
-
-  const session: ScreeningSession = await createSession({
+  const session: ScreeningSession | null = await createSessionIfNoOpen({
     patientId: body.patientId,
     createdByUserId: body.createdByUserId,
   });
+
+  if (!session) {
+    res.status(409).json({ message: "Patient already has an open session" });
+    return;
+  }
 
   res.status(201).json(session);
 });

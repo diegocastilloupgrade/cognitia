@@ -11,6 +11,9 @@ export class SessionsListComponent implements OnInit {
   form: CreateSessionDto = { patientId: 0, createdByUserId: 1 };
   loading = false;
   error: string | null = null;
+  warning: string | null = null;
+  existingOpenSession: ScreeningSession | null = null;
+  submitting = false;
 
   constructor(private sessionsService: SessionsService) {}
 
@@ -34,14 +37,50 @@ export class SessionsListComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.form.patientId) return;
+    if (!this.form.patientId || this.existingOpenSession) return;
+    this.submitting = true;
+    this.error = null;
     this.sessionsService.createSession(this.form).subscribe({
       next: () => {
         this.form = { patientId: 0, createdByUserId: 1 };
+        this.existingOpenSession = null;
+        this.warning = null;
+        this.submitting = false;
         this.loadSessions();
       },
+      error: (err) => {
+        if (err?.status === 409) {
+          this.error = err?.error?.message ?? 'El paciente ya tiene una sesión abierta.';
+          this.checkForOpenSession();
+        } else {
+          this.error = 'Error al crear la sesión.';
+        }
+        this.submitting = false;
+      }
+    });
+  }
+
+  onPatientIdChange(): void {
+    this.checkForOpenSession();
+  }
+
+  private checkForOpenSession(): void {
+    if (!this.form.patientId || this.form.patientId < 1) {
+      this.existingOpenSession = null;
+      this.warning = null;
+      return;
+    }
+
+    this.sessionsService.getOpenSessionByPatientId(this.form.patientId).subscribe({
+      next: (session) => {
+        this.existingOpenSession = session;
+        this.warning = session
+          ? 'Este paciente ya tiene una sesión abierta. Debes continuar la sesión existente.'
+          : null;
+      },
       error: () => {
-        this.error = 'Error al crear la sesión.';
+        this.existingOpenSession = null;
+        this.warning = null;
       }
     });
   }

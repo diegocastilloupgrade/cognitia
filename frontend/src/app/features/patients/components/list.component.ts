@@ -11,6 +11,7 @@ export class PatientsListComponent implements OnInit {
   form: CreatePatientDto = { fullName: '', birthDate: '' };
   loading = false;
   error: string | null = null;
+  deletingPatientId: number | null = null;
 
   constructor(private patientsService: PatientsService) {}
 
@@ -42,6 +43,30 @@ export class PatientsListComponent implements OnInit {
       },
       error: () => {
         this.error = 'Error al crear el paciente.';
+      }
+    });
+  }
+
+  onDelete(patient: Patient): void {
+    const confirmed = window.confirm(`¿Eliminar al paciente "${patient.fullName}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.error = null;
+    this.deletingPatientId = patient.id;
+    this.patientsService.deletePatient(patient.id).subscribe({
+      next: () => {
+        this.patients = this.patients.filter((p) => p.id !== patient.id);
+        this.deletingPatientId = null;
+      },
+      error: (err) => {
+        if (err?.status === 409) {
+          this.error = 'No se puede eliminar: el paciente tiene sesiones activas.';
+        } else {
+          this.error = 'Error al eliminar el paciente.';
+        }
+        this.deletingPatientId = null;
       }
     });
   }

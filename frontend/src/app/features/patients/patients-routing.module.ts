@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { PatientsListComponent } from './components/list.component';
+import { PatientEditComponent } from './components/edit.component';
 
 const routes: Routes = [
   {
@@ -10,6 +11,10 @@ const routes: Routes = [
   {
     path: 'list',
     component: PatientsListComponent
+  },
+  {
+    path: ':id/edit',
+    component: PatientEditComponent
   }
 ];
 
