@@ -1,21 +1,90 @@
 <div class="results-container">
-  <h2>Results</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Session ID</th>
-        <th>Score</th>
-        <th>Created At</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let result of results">
-        <td>{{ result.id }}</td>
-        <td>{{ result.sessionId }}</td>
-        <td>{{ result.score }}</td>
-        <td>{{ result.createdAt }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <h2>Revisión clínica</h2>
+
+  <section class="toolbar">
+    <label>
+      ID de sesión
+      <input [(ngModel)]="sessionIdFiltro" type="number" min="1" placeholder="Ej: 12" />
+    </label>
+
+    <label>
+      Filtro por paciente
+      <input [(ngModel)]="patientIdFiltro" type="number" min="1" placeholder="Opcional" />
+    </label>
+
+    <button type="button" (click)="buscarRevisionPorSesion()">Buscar revisión</button>
+  </section>
+
+  <section class="sessions" *ngIf="sesionesFiltradas.length > 0">
+    <h3>Sesiones completadas</h3>
+    <div class="sessions-list">
+      <button
+        type="button"
+        class="session-chip"
+        *ngFor="let session of sesionesFiltradas"
+        (click)="abrirRevision(session.id)"
+      >
+        Sesión {{ session.id }} · Paciente {{ session.patientId }}
+      </button>
+    </div>
+  </section>
+
+  <p class="state loading" *ngIf="estado === 'cargando'">Cargando revisión...</p>
+  <p class="state empty" *ngIf="estado === 'vacío'">No hay resultados para la sesión consultada.</p>
+
+  <div class="state error" *ngIf="estado === 'error'">
+    <p>{{ mensajeError }}</p>
+    <button type="button" (click)="reintentar()" [disabled]="!sessionIdFiltro">Reintentar</button>
+  </div>
+
+  <section *ngIf="estado === 'listo' && revision" class="review">
+    <div class="summary-grid">
+      <article class="summary-card">
+        <h4>Total resultados</h4>
+        <p>{{ revision.summary.totalResults }}</p>
+      </article>
+      <article class="summary-card">
+        <h4>Ítems distintos</h4>
+        <p>{{ revision.summary.distinctItems }}</p>
+      </article>
+      <article class="summary-card">
+        <h4>Promedio (ms)</h4>
+        <p>{{ revision.summary.averageResponseTimeMs ?? '-' }}</p>
+      </article>
+      <article class="summary-card">
+        <h4>Outcomes</h4>
+        <p>
+          Acierto: {{ revision.summary.outcomes.ACIERTO }} ·
+          Error: {{ revision.summary.outcomes.ERROR }} ·
+          Omisión: {{ revision.summary.outcomes.OMISION }} ·
+          No aplica: {{ revision.summary.outcomes.NO_APLICA }}
+        </p>
+      </article>
+    </div>
+
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Ítem</th>
+          <th>Posición</th>
+          <th>Outcome</th>
+          <th>Resumen data</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let result of revision.results">
+          <td>{{ result.itemCode }}</td>
+          <td>{{ result.positionInSession }}</td>
+          <td>
+            <span class="outcome-pill" [ngClass]="claseOutcome(result.evaluatedOutcome)">
+              {{ result.evaluatedOutcome }}
+            </span>
+          </td>
+          <td>{{ resumenData(result) }}</td>
+          <td>{{ result.createdAt | date:'short' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 </div>
