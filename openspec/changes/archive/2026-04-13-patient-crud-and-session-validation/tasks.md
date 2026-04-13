@@ -70,5 +70,5 @@
 
 - [x] 9.1 Test end-to-end flow: edit patient → start session fails if open exists → view existing
 - [x] 9.2 Update API documentation (README or OpenAPI spec) with new endpoints
-- [ ] 9.3 Verify GitHub Actions CI passes for both backend tests and frontend build
-- [ ] 9.4 Create PR with all changes and link to this change in OpenSpec
+- [x] 9.3 Verify GitHub Actions CI passes for both backend tests and frontend build
+- [x] 9.4 Create PR with all changes and link to this change in OpenSpec
