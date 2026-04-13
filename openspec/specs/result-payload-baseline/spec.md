@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Payload baseline generico para resultados por item
-El sistema MUST aceptar y manejar un payload baseline por item dentro de una sesion con tipado explicito por codigo de item, manteniendo `sessionId`, `itemCode`, `positionInSession` y `evaluatedOutcome` como metadatos comunes, y persistiendo ese resultado de forma consistente con la transicion runtime asociada.
+El sistema MUST aceptar y manejar un payload baseline por item dentro de una sesion con tipado explicito por codigo de item, manteniendo `sessionId`, `itemCode`, `positionInSession` y `evaluatedOutcome` como metadatos comunes, persistiendo ese resultado de forma consistente con la transicion runtime asociada y exponiendolo para su consumo en la revisión clínica de sesiones completadas.
 
 #### Scenario: Registrar payload por item con tipado especifico
 - WHEN el cliente envia un resultado para un item soportado (3.1 a 3.7)
@@ -17,10 +17,10 @@ El sistema MUST aceptar y manejar un payload baseline por item dentro de una ses
 - WHEN se completa un item mediante `finalize-item`
 - THEN el backend MUST evitar que el resultado quede persistido sin la transicion runtime asociada o viceversa
 
-## ADDED Constraints
-- El baseline mantiene metadatos comunes compartidos entre items.
-- `data` deja de ser libre y pasa a estar gobernado por contratos tipados por item y una persistencia consistente con runtime.
+#### Scenario: Resultados baseline son consumibles para revisión clínica
+- WHEN un módulo de revisión solicita resultados de una sesión completada
+- THEN el sistema MUST entregar un payload consistente y suficiente para renderizar detalle por ítem sin inferencias implícitas del cliente
 
 ## ADDED Constraints
 - El baseline mantiene metadatos comunes compartidos entre items.
-- `data` deja de ser libre y pasa a estar gobernado por contratos tipados por item.
+- `data` deja de ser libre y pasa a estar gobernado por contratos tipados por item y una persistencia consistente con runtime.
