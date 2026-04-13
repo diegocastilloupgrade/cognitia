@@ -13,6 +13,24 @@ export interface AuthToken {
   expiresInSeconds: number;
 }
 
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 interface JwtPayload {
   exp?: number;
 }
@@ -27,6 +45,14 @@ export class AuthService {
 
   login(payload: LoginPayload): Observable<AuthToken> {
     return this.http.post<AuthToken>(`${getApiBaseUrl()}/auth/login`, payload);
+  }
+
+  forgotPassword(payload: ForgotPasswordPayload): Observable<ForgotPasswordResponse> {
+    return this.http.post<ForgotPasswordResponse>(`${getApiBaseUrl()}/auth/forgot-password`, payload);
+  }
+
+  resetPassword(payload: ResetPasswordPayload): Observable<ResetPasswordResponse> {
+    return this.http.post<ResetPasswordResponse>(`${getApiBaseUrl()}/auth/reset-password`, payload);
   }
 
   saveToken(accessToken: string): void {
