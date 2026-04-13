@@ -64,6 +64,17 @@ export async function countOpenByPatientId(patientId: number): Promise<number> {
   return Number((result.rows[0] as { open_count: number }).open_count ?? 0);
 }
 
+export async function countByPatientId(patientId: number): Promise<number> {
+  const result = await getPostgresPool().query(
+    `SELECT COUNT(*)::int AS session_count
+     FROM sessions
+     WHERE patient_id = $1`,
+    [patientId],
+  );
+
+  return Number((result.rows[0] as { session_count: number }).session_count ?? 0);
+}
+
 export async function findOpenByPatientId(patientId: number): Promise<ScreeningSession | null> {
   const result = await getPostgresPool().query(
     `SELECT id::int AS id, patient_id::int AS patient_id, created_by_user_id, status,

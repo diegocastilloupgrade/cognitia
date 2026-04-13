@@ -21,7 +21,7 @@
 - [x] 3.2 Add validation in POST `/sessions` handler before creating new session
 - [x] 3.3 Return 409 Conflict with message if open session exists
 - [x] 3.4 Ensure validation happens transactionally (READ_COMMITTED isolation)
-- [ ] 3.5 Update API endpoint response contract documentation if needed
+- [x] 3.5 Update API endpoint response contract documentation if needed
 
 ## 4. Frontend - Patient Edit Form Component
 
@@ -47,28 +47,28 @@
 - [x] 6.2 Disable submit button and show warning if open session already exists
 - [x] 6.3 Add link to view existing open session from the warning message
 - [x] 6.4 Handle API 409 Conflict response with user-friendly message
-- [ ] 6.5 Test race condition scenario (fast double-click) returns proper error
+- [x] 6.5 Test race condition scenario (fast double-click) returns proper error
 
 ## 7. Backend Tests
 
 - [x] 7.1 Add tests for PATCH `/patients/:id` (successful update, 404, validation errors)
 - [x] 7.2 Add tests for DELETE `/patients/:id` (successful delete, 409 with open sessions, 404)
 - [x] 7.3 Add tests for POST `/sessions` duplicate prevention (accept if no open, reject if duplicate)
-- [ ] 7.4 Add transaction isolation test for session duplicate race condition
+- [x] 7.4 Add transaction isolation test for session duplicate race condition
 - [x] 7.5 Run npm test - all tests passing
-- [ ] 7.6 Update existing smoke test if needed to cover new endpoints
+- [x] 7.6 Update existing smoke test if needed to cover new endpoints
 
 ## 8. Frontend Tests
 
-- [ ] 8.1 Add tests for patient edit form submission (PATCH request, success/error handling)
-- [ ] 8.2 Add tests for patient delete confirmation modal and DELETE request
-- [ ] 8.3 Add tests for session creation form duplicate check (UI behavior)
+- [x] 8.1 Add tests for patient edit form submission (PATCH request, success/error handling)
+- [x] 8.2 Add tests for patient delete confirmation modal and DELETE request
+- [x] 8.3 Add tests for session creation form duplicate check (UI behavior)
 - [x] 8.4 Build frontend: npm run build - no TypeScript errors
-- [ ] 8.5 Run ng test if unit tests configured (or manual validation)
+- [x] 8.5 Run ng test if unit tests configured (or manual validation)
 
 ## 9. Integration & Documentation
 
-- [ ] 9.1 Test end-to-end flow: edit patient → start session fails if open exists → view existing
-- [ ] 9.2 Update API documentation (README or OpenAPI spec) with new endpoints
+- [x] 9.1 Test end-to-end flow: edit patient → start session fails if open exists → view existing
+- [x] 9.2 Update API documentation (README or OpenAPI spec) with new endpoints
 - [ ] 9.3 Verify GitHub Actions CI passes for both backend tests and frontend build
 - [ ] 9.4 Create PR with all changes and link to this change in OpenSpec

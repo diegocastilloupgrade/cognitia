@@ -6,7 +6,7 @@ import {
   listPatients,
   updatePatient,
 } from "../../shared/persistence/patients.repository";
-import { countOpenByPatientId } from "../../shared/persistence/sessions.repository";
+import { countByPatientId, countOpenByPatientId } from "../../shared/persistence/sessions.repository";
 
 export const patientsRouter = Router();
 
@@ -141,12 +141,22 @@ patientsRouter.delete("/:id", async (req, res) => {
     return;
   }
 
-  const openSessions = await countOpenByPatientId(id);
-  if (openSessions > 0) {
-    res.status(409).json({ message: "Cannot delete patient with active sessions" });
-    return;
-  }
+  try {
+    const openSessions = await countOpenByPatientId(id);
+    if (openSessions > 0) {
+      res.status(409).json({ message: "Cannot delete patient with active sessions" });
+      return;
+    }
 
-  await deletePatient(id);
-  res.status(204).send();
+    const totalSessions = await countByPatientId(id);
+    if (totalSessions > 0) {
+      res.status(409).json({ message: "Cannot delete patient with existing sessions" });
+      return;
+    }
+
+    await deletePatient(id);
+    res.status(204).send();
+  } catch (_error) {
+    res.status(500).json({ message: "Failed to delete patient" });
+  }
 });

@@ -158,6 +158,48 @@ describe("patients module", { concurrency: 1 }, () => {
     );
   });
 
+  test("DELETE /patients/:id returns 409 when patient has completed sessions", async (t) => {
+    await truncateAllTables();
+    const { server, baseUrl } = await startTestServer();
+    t.after(() => server.close());
+
+    const createdPatient = await jsonRequest(baseUrl, "/api/patients", {
+      method: "POST",
+      body: JSON.stringify({ fullName: "Paciente Con Historial", birthDate: "1993-04-04" }),
+    });
+    assert.equal(createdPatient.status, 201);
+    const patientId = Number((createdPatient.body as Record<string, unknown>).id);
+
+    const sessionCreated = await jsonRequest(baseUrl, "/api/sessions", {
+      method: "POST",
+      body: JSON.stringify({ patientId, createdByUserId: 1 }),
+    });
+    assert.equal(sessionCreated.status, 201);
+    const sessionId = Number((sessionCreated.body as Record<string, unknown>).id);
+
+    const started = await jsonRequest(baseUrl, `/api/sessions/${sessionId}/start`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    assert.equal(started.status, 200);
+
+    const completed = await jsonRequest(baseUrl, `/api/sessions/${sessionId}/complete`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    assert.equal(completed.status, 200);
+
+    const deleted = await jsonRequest(baseUrl, `/api/patients/${patientId}`, {
+      method: "DELETE",
+    });
+
+    assert.equal(deleted.status, 409);
+    assert.equal(
+      (deleted.body as Record<string, unknown>).message,
+      "Cannot delete patient with existing sessions",
+    );
+  });
+
   test("DELETE /patients/:id returns 404 for missing patient", async (t) => {
     await truncateAllTables();
     const { server, baseUrl } = await startTestServer();

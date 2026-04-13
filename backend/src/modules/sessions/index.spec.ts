@@ -128,4 +128,26 @@ describe("sessions module", { concurrency: 1 }, () => {
     assert.equal(second.status, 201);
     assert.notEqual((second.body as Record<string, unknown>).id, sessionId);
   });
+
+  test("POST /sessions handles concurrent duplicate attempts with one success and one conflict", async (t) => {
+    await truncateAllTables();
+    const { server, baseUrl } = await startTestServer();
+    t.after(() => server.close());
+
+    const patientId = await createPatient(baseUrl, "Paciente Carrera");
+
+    const [first, second] = await Promise.all([
+      jsonRequest(baseUrl, "/api/sessions", {
+        method: "POST",
+        body: JSON.stringify({ patientId, createdByUserId: 1 }),
+      }),
+      jsonRequest(baseUrl, "/api/sessions", {
+        method: "POST",
+        body: JSON.stringify({ patientId, createdByUserId: 1 }),
+      }),
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    assert.deepEqual(statuses, [201, 409]);
+  });
 });
