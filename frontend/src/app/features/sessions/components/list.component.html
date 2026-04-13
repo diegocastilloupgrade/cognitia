@@ -4,10 +4,17 @@
   <form (ngSubmit)="onSubmit()" #sessionForm="ngForm">
     <label>
       ID de paciente
-      <input type="number" name="patientId" [(ngModel)]="form.patientId" required min="1" />
+      <input type="number" name="patientId" [(ngModel)]="form.patientId" (ngModelChange)="onPatientIdChange()" required min="1" />
     </label>
     <input type="hidden" name="createdByUserId" [(ngModel)]="form.createdByUserId" />
-    <button type="submit" [disabled]="!sessionForm.form.valid || form.patientId < 1">Crear sesión</button>
+    <button type="submit" [disabled]="!sessionForm.form.valid || form.patientId < 1 || !!existingOpenSession || submitting">
+      {{ submitting ? 'Creando...' : 'Crear sesión' }}
+    </button>
+
+    <p *ngIf="warning" class="warning">{{ warning }}</p>
+    <p *ngIf="existingOpenSession">
+      <a [routerLink]="['/execution', existingOpenSession.id]">Ir a la sesión abierta #{{ existingOpenSession.id }}</a>
+    </p>
   </form>
 
   <p *ngIf="loading">Cargando...</p>

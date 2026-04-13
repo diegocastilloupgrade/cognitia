@@ -39,77 +39,18 @@ jobs:
         working-directory: ./backend
         run: npm install
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Initialize PostgreSQL schema
-        working-directory: ./backend
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: cognitia
-          DB_USER: cognitia
-          DB_PASSWORD: cognitia_dev_password
-          DB_SSL: 'false'
+          PGPASSWORD: cognitia_dev_password
         run: |
-          npm install -g psql || true
           until pg_isready -h localhost -p 5432 -U cognitia; do
             echo "Waiting for PostgreSQL..."
             sleep 1
           done
-          PGPASSWORD=cognitia_dev_password psql -h localhost -U cognitia -d cognitia << 'EOF'
-          -- Patients table
-          CREATE TABLE IF NOT EXISTS patients (
-            id SERIAL PRIMARY KEY,
-            full_name VARCHAR(255) NOT NULL,
-            birth_date DATE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-
-          -- Sessions table
-          CREATE TABLE IF NOT EXISTS sessions (
-            id SERIAL PRIMARY KEY,
-            patient_id INTEGER NOT NULL REFERENCES patients(id),
-            created_by_user_id INTEGER NOT NULL,
-            status VARCHAR(50) DEFAULT 'PENDIENTE',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-
-          -- Runtime table (timing/execution state)
-          CREATE TABLE IF NOT EXISTS runtime (
-            id SERIAL PRIMARY KEY,
-            session_id INTEGER NOT NULL REFERENCES sessions(id),
-            active_item_code VARCHAR(10),
-            runtime_status VARCHAR(50) DEFAULT 'PENDIENTE',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-
-          -- Runtime events (silence events, etc.)
-          CREATE TABLE IF NOT EXISTS runtime_events (
-            id SERIAL PRIMARY KEY,
-            runtime_id INTEGER NOT NULL REFERENCES runtime(id),
-            event_type VARCHAR(50),
-            event_data JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-
-          -- Results table
-          CREATE TABLE IF NOT EXISTS results (
-            id SERIAL PRIMARY KEY,
-            session_id INTEGER NOT NULL REFERENCES sessions(id),
-            item_code VARCHAR(10) NOT NULL,
-            position_in_session INTEGER,
-            evaluated_outcome VARCHAR(50),
-            result_data JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-
-          -- Indices for performance
-          CREATE INDEX IF NOT EXISTS idx_sessions_patient_id ON sessions(patient_id);
-          CREATE INDEX IF NOT EXISTS idx_runtime_session_id ON runtime(session_id);
-          CREATE INDEX IF NOT EXISTS idx_runtime_events_runtime_id ON runtime_events(runtime_id);
-          CREATE INDEX IF NOT EXISTS idx_results_session_id ON results(session_id);
-          EOF
+          psql -h localhost -U cognitia -d cognitia -f infra/postgres/init/001-init-schema.sql
 
       - name: Build backend
         working-directory: ./backend

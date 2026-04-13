@@ -1,0 +1,25 @@
+<div class="patients-container">
+  <h2>Editar paciente</h2>
+
+  <p *ngIf="loading">Cargando...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+  <p *ngIf="success" class="success">{{ success }}</p>
+
+  <form *ngIf="!loading" (ngSubmit)="onSubmit()" #editForm="ngForm">
+    <label>
+      Nombre completo
+      <input type="text" name="fullName" [(ngModel)]="form.fullName" required />
+    </label>
+    <label>
+      Fecha de nacimiento
+      <input type="date" name="birthDate" [(ngModel)]="form.birthDate" required />
+    </label>
+
+    <div class="actions">
+      <button type="submit" [disabled]="!editForm.form.valid || saving">
+        {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+      </button>
+      <button type="button" [disabled]="saving" [routerLink]="['/patients']">Cancelar</button>
+    </div>
+  </form>
+</div>

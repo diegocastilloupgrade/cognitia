@@ -75,18 +75,22 @@ export async function updatePatient(id: number, updates: Partial<CreatePatientDt
   return mapPatient(result.rows[0] as Record<string, unknown>);
 }
 
-export async function deactivatePatient(id: number): Promise<Patient | null> {
-  const result = await getPostgresPool().query(
-    `UPDATE patients
-       SET active = FALSE
-     WHERE id = $1
-     RETURNING id::int AS id, full_name, birth_date::text AS birth_date, sex, internal_code, active`,
-    [id],
-  );
+export async function deletePatient(id: number): Promise<boolean> {
+  const client = await getPostgresPool().connect();
 
-  if (result.rowCount === 0) {
-    return null;
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `DELETE FROM patients
+       WHERE id = $1`,
+      [id],
+    );
+    await client.query("COMMIT");
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
-
-  return mapPatient(result.rows[0] as Record<string, unknown>);
 }

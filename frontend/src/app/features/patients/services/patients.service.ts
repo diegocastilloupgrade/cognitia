@@ -17,6 +17,8 @@ export interface CreatePatientDto {
   birthDate: string;
 }
 
+export type UpdatePatientDto = Partial<CreatePatientDto>;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -29,7 +31,19 @@ export class PatientsService {
     return this.http.get<Patient[]>(this.baseUrl);
   }
 
+  getPatientById(id: number): Observable<Patient> {
+    return this.http.get<Patient>(`${this.baseUrl}/${id}`);
+  }
+
   createPatient(dto: CreatePatientDto): Observable<Patient> {
     return this.http.post<Patient>(this.baseUrl, dto);
+  }
+
+  updatePatient(id: number, dto: UpdatePatientDto): Observable<Patient> {
+    return this.http.patch<Patient>(`${this.baseUrl}/${id}`, dto);
+  }
+
+  deletePatient(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

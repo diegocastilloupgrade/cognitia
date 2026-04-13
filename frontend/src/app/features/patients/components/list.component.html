@@ -23,6 +23,7 @@
         <th>Nombre completo</th>
         <th>Fecha de nacimiento</th>
         <th>Activo</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -31,6 +32,16 @@
         <td>{{ patient.fullName }}</td>
         <td>{{ patient.birthDate }}</td>
         <td>{{ patient.active ? 'Sí' : 'No' }}</td>
+        <td>
+          <a [routerLink]="['/patients', patient.id, 'edit']">Editar</a>
+          <button
+            type="button"
+            (click)="onDelete(patient)"
+            [disabled]="deletingPatientId === patient.id"
+          >
+            {{ deletingPatientId === patient.id ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
