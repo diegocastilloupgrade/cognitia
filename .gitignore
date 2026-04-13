@@ -9,3 +9,7 @@ backend/data/*.json
 # Otros típicos
 .env
 .env.local
+
+# Documentos temporales/no versionados
+*.docx
+docs/*.docx
