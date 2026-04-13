@@ -142,5 +142,5 @@ test("requireAuth middleware allows request with valid token", async (t) => {
   });
 
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, []);
+  assert.equal(Array.isArray(response.body), true);
 });

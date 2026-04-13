@@ -1,23 +1,19 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { describe } from "node:test";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import os from "node:os";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { createApp } from "../../app";
-import { resetStoreStateForTests } from "../../shared/persistence/app-store";
+import { getPostgresPool } from "../../shared/db/postgres";
 
 type JsonValue = Record<string, unknown> | Array<unknown>;
 
-function createTestStorePath(): string {
-  return path.join(os.tmpdir(), `cognitia-results-store-${randomUUID()}.json`);
+async function truncateAllTables(): Promise<void> {
+  await getPostgresPool().query(
+    "TRUNCATE patients, sessions, runtime_sessions, item_timing_states, session_results RESTART IDENTITY CASCADE",
+  );
 }
 
 async function startTestServer(): Promise<{ server: Server; baseUrl: string }> {
-  process.env.COGNITIA_STORE_FILE = createTestStorePath();
-  resetStoreStateForTests();
-
   const app = createApp();
 
   return new Promise((resolve) => {
@@ -29,6 +25,21 @@ async function startTestServer(): Promise<{ server: Server; baseUrl: string }> {
       });
     });
   });
+}
+
+async function createTestSession(baseUrl: string): Promise<number> {
+  const patientRes = await jsonRequest(baseUrl, "/api/patients", {
+    method: "POST",
+    body: JSON.stringify({ fullName: "Test Patient", birthDate: "1990-01-01" }),
+  });
+  const patientId = (patientRes.body as Record<string, unknown>).id as number;
+
+  const sessionRes = await jsonRequest(baseUrl, "/api/sessions", {
+    method: "POST",
+    body: JSON.stringify({ patientId, createdByUserId: 1 }),
+  });
+
+  return (sessionRes.body as Record<string, unknown>).id as number;
 }
 
 async function jsonRequest(
@@ -50,102 +61,110 @@ async function jsonRequest(
   };
 }
 
-test("results contract rejects invalid session id", async (t) => {
-  const { server, baseUrl } = await startTestServer();
-  t.after(() => server.close());
+describe("results module", { concurrency: 1 }, () => {
+  test("results contract rejects invalid session id", async (t) => {
+    const { server, baseUrl } = await startTestServer();
+    t.after(() => server.close());
 
-  const response = await jsonRequest(baseUrl, "/api/results/session/invalid");
+    const response = await jsonRequest(baseUrl, "/api/results/session/invalid");
 
-  assert.equal(response.status, 400);
-  assert.deepEqual(response.body, { message: "Invalid sessionId" });
-});
-
-test("results contract stores and lists typed payload by session", async (t) => {
-  const { server, baseUrl } = await startTestServer();
-  t.after(() => server.close());
-
-  const created = await jsonRequest(baseUrl, "/api/results/session/101", {
-    method: "POST",
-    body: JSON.stringify({
-      itemCode: "3.1",
-      positionInSession: 1,
-      evaluatedOutcome: "ACIERTO",
-      data: {
-        stimulusId: "img-01",
-        recognizedText: "guitarra",
-        isCorrect: true,
-        responseTimeMs: 900,
-      },
-    }),
+    assert.equal(response.status, 400);
+    assert.deepEqual(response.body, { message: "Invalid sessionId" });
   });
 
-  assert.equal(created.status, 201);
+  test("results contract stores and lists typed payload by session", async (t) => {
+    await truncateAllTables();
+    const { server, baseUrl } = await startTestServer();
+    t.after(() => server.close());
 
-  const listed = await jsonRequest(baseUrl, "/api/results/session/101");
+    const sessionId = await createTestSession(baseUrl);
 
-  assert.equal(listed.status, 200);
-  assert.equal((listed.body as Array<unknown>).length, 1);
+    const created = await jsonRequest(baseUrl, `/api/results/session/${sessionId}`, {
+      method: "POST",
+      body: JSON.stringify({
+        itemCode: "3.1",
+        positionInSession: 1,
+        evaluatedOutcome: "ACIERTO",
+        data: {
+          stimulusId: "img-01",
+          recognizedText: "guitarra",
+          isCorrect: true,
+          responseTimeMs: 900,
+        },
+      }),
+    });
 
-  const firstResult = (listed.body as Array<Record<string, unknown>>)[0];
-  assert.equal(firstResult.itemCode, "3.1");
-  assert.equal(firstResult.positionInSession, 1);
-  assert.equal((firstResult.data as Record<string, unknown>).stimulusId, "img-01");
-});
+    assert.equal(created.status, 201);
 
-test("results review contract returns summary with aggregates", async (t) => {
-  const { server, baseUrl } = await startTestServer();
-  t.after(() => server.close());
+    const listed = await jsonRequest(baseUrl, `/api/results/session/${sessionId}`);
 
-  await jsonRequest(baseUrl, "/api/results/session/202", {
-    method: "POST",
-    body: JSON.stringify({
-      itemCode: "3.1",
-      positionInSession: 1,
-      evaluatedOutcome: "ACIERTO",
-      data: {
-        stimulusId: "img-01",
-        recognizedText: "guitarra",
-        isCorrect: true,
-        responseTimeMs: 1000,
-      },
-    }),
+    assert.equal(listed.status, 200);
+    assert.equal((listed.body as Array<unknown>).length, 1);
+
+    const firstResult = (listed.body as Array<Record<string, unknown>>)[0];
+    assert.equal(firstResult.itemCode, "3.1");
+    assert.equal(firstResult.positionInSession, 1);
+    assert.equal((firstResult.data as Record<string, unknown>).stimulusId, "img-01");
   });
 
-  await jsonRequest(baseUrl, "/api/results/session/202", {
-    method: "POST",
-    body: JSON.stringify({
-      itemCode: "3.2",
-      positionInSession: 2,
-      evaluatedOutcome: "OMISION",
-      data: {
-        recognizedText: "",
-        responseTimeMs: 2000,
-        wasCompleted: false,
-      },
-    }),
+  test("results review contract returns summary with aggregates", async (t) => {
+    await truncateAllTables();
+    const { server, baseUrl } = await startTestServer();
+    t.after(() => server.close());
+
+    const sessionId = await createTestSession(baseUrl);
+
+    await jsonRequest(baseUrl, `/api/results/session/${sessionId}`, {
+      method: "POST",
+      body: JSON.stringify({
+        itemCode: "3.1",
+        positionInSession: 1,
+        evaluatedOutcome: "ACIERTO",
+        data: {
+          stimulusId: "img-01",
+          recognizedText: "guitarra",
+          isCorrect: true,
+          responseTimeMs: 1000,
+        },
+      }),
+    });
+
+    await jsonRequest(baseUrl, `/api/results/session/${sessionId}`, {
+      method: "POST",
+      body: JSON.stringify({
+        itemCode: "3.2",
+        positionInSession: 2,
+        evaluatedOutcome: "OMISION",
+        data: {
+          recognizedText: "",
+          responseTimeMs: 2000,
+          wasCompleted: false,
+        },
+      }),
+    });
+
+    const summaryFromQuery = await jsonRequest(baseUrl, `/api/results/session/${sessionId}?includeSummary=true`);
+    assert.equal(summaryFromQuery.status, 200);
+
+    const queryPayload = summaryFromQuery.body as Record<string, unknown>;
+    const querySummary = queryPayload.summary as Record<string, unknown>;
+
+    assert.equal(queryPayload.sessionId, sessionId);
+    assert.equal((queryPayload.results as Array<unknown>).length, 2);
+    assert.equal(querySummary.totalResults, 2);
+    assert.equal(querySummary.distinctItems, 2);
+    assert.equal(querySummary.averageResponseTimeMs, 1500);
+
+    const outcomes = querySummary.outcomes as Record<string, number>;
+    assert.equal(outcomes.ACIERTO, 1);
+    assert.equal(outcomes.OMISION, 1);
+    assert.equal(outcomes.ERROR, 0);
+    assert.equal(outcomes.NO_APLICA, 0);
+
+    const summaryFromReviewEndpoint = await jsonRequest(baseUrl, `/api/results/session/${sessionId}/review`);
+    assert.equal(summaryFromReviewEndpoint.status, 200);
+
+    const reviewPayload = summaryFromReviewEndpoint.body as Record<string, unknown>;
+    assert.deepEqual(reviewPayload.summary, querySummary);
   });
-
-  const summaryFromQuery = await jsonRequest(baseUrl, "/api/results/session/202?includeSummary=true");
-  assert.equal(summaryFromQuery.status, 200);
-
-  const queryPayload = summaryFromQuery.body as Record<string, unknown>;
-  const querySummary = queryPayload.summary as Record<string, unknown>;
-
-  assert.equal(queryPayload.sessionId, 202);
-  assert.equal((queryPayload.results as Array<unknown>).length, 2);
-  assert.equal(querySummary.totalResults, 2);
-  assert.equal(querySummary.distinctItems, 2);
-  assert.equal(querySummary.averageResponseTimeMs, 1500);
-
-  const outcomes = querySummary.outcomes as Record<string, number>;
-  assert.equal(outcomes.ACIERTO, 1);
-  assert.equal(outcomes.OMISION, 1);
-  assert.equal(outcomes.ERROR, 0);
-  assert.equal(outcomes.NO_APLICA, 0);
-
-  const summaryFromReviewEndpoint = await jsonRequest(baseUrl, "/api/results/session/202/review");
-  assert.equal(summaryFromReviewEndpoint.status, 200);
-
-  const reviewPayload = summaryFromReviewEndpoint.body as Record<string, unknown>;
-  assert.deepEqual(reviewPayload.summary, querySummary);
 });

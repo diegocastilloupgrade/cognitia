@@ -8,7 +8,7 @@ import {
   isValidDataForItemCode,
   isValidItemCode,
   listResultsBySessionId,
-  persistResult,
+  persistResultAsync,
   resolveEvaluatedOutcome,
 } from "./results.store";
 
@@ -18,7 +18,7 @@ function parseSessionId(value: string): number {
   return Number(value);
 }
 
-resultsRouter.get("/session/:sessionId", (req, res) => {
+resultsRouter.get("/session/:sessionId", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
@@ -26,24 +26,24 @@ resultsRouter.get("/session/:sessionId", (req, res) => {
   }
 
   if (req.query.includeSummary === "true") {
-    res.json(buildSessionReviewPayload(sessionId));
+    res.json(await buildSessionReviewPayload(sessionId));
     return;
   }
 
-  res.json(listResultsBySessionId(sessionId));
+  res.json(await listResultsBySessionId(sessionId));
 });
 
-resultsRouter.get("/session/:sessionId/review", (req, res) => {
+resultsRouter.get("/session/:sessionId/review", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
     return;
   }
 
-  res.json(buildSessionReviewPayload(sessionId));
+  res.json(await buildSessionReviewPayload(sessionId));
 });
 
-resultsRouter.post("/session/:sessionId", (req, res) => {
+resultsRouter.post("/session/:sessionId", async (req, res) => {
   const sessionId = parseSessionId(req.params.sessionId);
   if (Number.isNaN(sessionId)) {
     res.status(400).json({ message: "Invalid sessionId" });
@@ -84,7 +84,7 @@ resultsRouter.post("/session/:sessionId", (req, res) => {
     return;
   }
 
-  const created = persistResult({
+  const created = await persistResultAsync({
     sessionId,
     itemCode: body.itemCode,
     positionInSession: body.positionInSession,
