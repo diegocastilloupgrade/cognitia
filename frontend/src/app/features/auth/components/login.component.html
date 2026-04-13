@@ -1,11 +1,21 @@
-<form (ngSubmit)="login()">
-  <div>
-    <label>Email</label>
-    <input [(ngModel)]="email" name="email" type="email" />
+<form class="login-form" (ngSubmit)="login()">
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input id="email" [(ngModel)]="email" name="email" type="email" autocomplete="username" />
   </div>
-  <div>
-    <label>Password</label>
-    <input [(ngModel)]="password" name="password" type="password" />
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input id="password" [(ngModel)]="password" name="password" type="password" autocomplete="current-password" />
   </div>
-  <button type="submit">Login</button>
+
+  <p *ngIf="errorState === 'credentials'" class="error-message">
+    Credenciales inválidas. Verifica email y contraseña.
+  </p>
+  <p *ngIf="errorState === 'network'" class="error-message">
+    No fue posible conectar con el servidor. Intenta nuevamente.
+  </p>
+
+  <button class="login-button" type="submit" [disabled]="loading">
+    {{ loading ? 'Ingresando...' : 'Login' }}
+  </button>
 </form>

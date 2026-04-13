@@ -2,11 +2,12 @@
   <nav class="navbar">
     <h1>{{ title }}</h1>
     <ul>
-      <li><a routerLink="/auth">Auth</a></li>
+      <li><a routerLink="/auth/login">Auth</a></li>
       <li><a routerLink="/patients">Patients</a></li>
       <li><a routerLink="/sessions">Sessions</a></li>
       <li><a routerLink="/execution">Execution</a></li>
       <li><a routerLink="/results">Results</a></li>
+      <li *ngIf="isAuthenticated"><button type="button" (click)="logout()">Logout</button></li>
     </ul>
   </nav>
   <main class="content">
