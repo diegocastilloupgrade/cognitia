@@ -34,6 +34,19 @@
   opacity: 0.7;
 }
 
+.navbar button {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: transparent;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.navbar button:hover {
+  opacity: 0.8;
+}
+
 .content {
   flex: 1;
   padding: 2rem;

@@ -1,6 +1,4 @@
-# Execution Minimum Flow
-
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Flujo minimo de ejecucion por sesion
 Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de estimulos y registrar resultados por sesion durante un flujo autonomo donde el clinico solo inicia la sesion y el motor de ejecucion avanza item a item automaticamente, con capacidad de recuperar y continuar la ejecucion si la vista o el backend se reinician, dejando los artefactos de resultados necesarios para una revisión clínica posterior, y con todos los endpoints de ejecución protegidos por autenticación.
@@ -28,7 +26,3 @@ Una sesion MUST poder abrirse e iniciarse para ejecutar una secuencia demo de es
 #### Scenario: Endpoint de ejecución rechaza petición sin token
 - WHEN se envía una petición a cualquier endpoint de ejecución sin cabecera de autorización válida
 - THEN el backend MUST responder con HTTP 401 sin procesar la operación
-
-## ADDED Constraints
-- El flujo se limita a demostracion funcional de extremo a extremo.
-- No se definen en este cambio reglas completas de scoring real ni persistencia definitiva en base de datos relacional.
