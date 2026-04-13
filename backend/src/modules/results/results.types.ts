@@ -106,3 +106,16 @@ export type DiscriminatedCreateResultInput = {
 }[ItemCode];
 
 export type AnyCreateResultInput = CreateResultInput<ItemCode>;
+
+export interface SessionReviewSummary {
+  totalResults: number;
+  distinctItems: number;
+  outcomes: Record<EvaluatedOutcome, number>;
+  averageResponseTimeMs: number | null;
+}
+
+export interface SessionReviewPayload {
+  sessionId: number;
+  summary: SessionReviewSummary;
+  results: SessionResult[];
+}

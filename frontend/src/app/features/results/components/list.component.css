@@ -1,14 +1,114 @@
-/* Results List Component Styles */
 .results-container {
-  padding: 20px;
+  padding: 1.25rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.toolbar input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+}
+
+.toolbar button,
+.state.error button {
+  padding: 0.6rem 0.8rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.toolbar button:disabled,
+.state.error button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sessions {
+  margin-bottom: 1rem;
+}
+
+.sessions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.session-chip {
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.state {
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.state.loading {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.state.empty {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.state.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.summary-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.summary-card h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.summary-card p {
+  margin: 0;
+  font-weight: 600;
 }
 
 .results-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
+  margin-top: 0.8rem;
 }
 
 .results-table thead {
@@ -18,7 +118,7 @@
 .results-table th,
 .results-table td {
   border: 1px solid #ddd;
-  padding: 12px;
+  padding: 0.65rem;
   text-align: left;
 }
 
@@ -26,36 +126,29 @@
   background-color: #f5f5f5;
 }
 
-.score {
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.score.high {
-  color: #28a745;
-}
-
-.score.medium {
-  color: #ffc107;
-}
-
-.score.low {
-  color: #dc3545;
-}
-
-.status {
-  padding: 4px 8px;
+.outcome-pill {
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: bold;
 }
 
-.status.completed {
+.outcome-acierto {
   background-color: #d4edda;
   color: #155724;
 }
 
-.status.pending {
+.outcome-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.outcome-omision {
   background-color: #fff3cd;
   color: #856404;
+}
+
+.outcome-no-aplica {
+  background-color: #e2e8f0;
+  color: #334155;
 }

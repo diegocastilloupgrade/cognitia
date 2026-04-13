@@ -5,6 +5,8 @@ import type {
   ItemCode,
   ItemResultDataByCode,
   ItemResultData_3_1,
+  SessionReviewPayload,
+  SessionReviewSummary,
   SessionResult,
 } from "./results.types";
 
@@ -97,6 +99,58 @@ export function resolveEvaluatedOutcome(input: {
 
 export function listResultsBySessionId(sessionId: number): SessionResult[] {
   return readStoreState().results.filter((item) => item.sessionId === sessionId);
+}
+
+function extractResponseTimeMs(data: unknown): number | null {
+  if (!isRecord(data) || typeof data.responseTimeMs !== "number") {
+    return null;
+  }
+
+  return data.responseTimeMs;
+}
+
+export function buildSessionReviewSummary(results: SessionResult[]): SessionReviewSummary {
+  const outcomes: Record<EvaluatedOutcome, number> = {
+    ACIERTO: 0,
+    ERROR: 0,
+    OMISION: 0,
+    NO_APLICA: 0,
+  };
+
+  const distinctItems = new Set<ItemCode>();
+  const responseTimes: number[] = [];
+
+  for (const result of results) {
+    outcomes[result.evaluatedOutcome] += 1;
+    distinctItems.add(result.itemCode);
+
+    const responseTimeMs = extractResponseTimeMs(result.data);
+    if (responseTimeMs !== null) {
+      responseTimes.push(responseTimeMs);
+    }
+  }
+
+  const averageResponseTimeMs =
+    responseTimes.length > 0
+      ? Math.round(responseTimes.reduce((acc, value) => acc + value, 0) / responseTimes.length)
+      : null;
+
+  return {
+    totalResults: results.length,
+    distinctItems: distinctItems.size,
+    outcomes,
+    averageResponseTimeMs,
+  };
+}
+
+export function buildSessionReviewPayload(sessionId: number): SessionReviewPayload {
+  const results = listResultsBySessionId(sessionId);
+
+  return {
+    sessionId,
+    summary: buildSessionReviewSummary(results),
+    results,
+  };
 }
 
 export function persistResult(input: AnyCreateResultInput): SessionResult {

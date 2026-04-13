@@ -4,6 +4,7 @@ import type {
   ItemCode,
 } from "./results.types";
 import {
+  buildSessionReviewPayload,
   isValidDataForItemCode,
   isValidItemCode,
   listResultsBySessionId,
@@ -24,7 +25,22 @@ resultsRouter.get("/session/:sessionId", (req, res) => {
     return;
   }
 
+  if (req.query.includeSummary === "true") {
+    res.json(buildSessionReviewPayload(sessionId));
+    return;
+  }
+
   res.json(listResultsBySessionId(sessionId));
+});
+
+resultsRouter.get("/session/:sessionId/review", (req, res) => {
+  const sessionId = parseSessionId(req.params.sessionId);
+  if (Number.isNaN(sessionId)) {
+    res.status(400).json({ message: "Invalid sessionId" });
+    return;
+  }
+
+  res.json(buildSessionReviewPayload(sessionId));
 });
 
 resultsRouter.post("/session/:sessionId", (req, res) => {

@@ -1,79 +1,79 @@
-## Context
+## Contexto
 
-The backend already persists runtime and item-level results in a durable JSON store and exposes session-scoped result retrieval. The execution flow can now complete and persist typed payloads, but the dedicated review feature in Angular remains a placeholder and does not provide clinician-focused navigation, filtering, or session-level interpretation.
+El backend ya persiste runtime y resultados por ítem en un store JSON durable, y expone consulta de resultados por sesión. El flujo de ejecución ya puede finalizar y persistir payloads tipados, pero la funcionalidad dedicada de revisión en Angular sigue como marcador de posición y no ofrece navegación, filtrado ni interpretación a nivel de sesión orientada al clínico.
 
-This change crosses frontend (`results` feature, routing, API service contracts) and backend result-read behavior (query shape and aggregation support). It also impacts OpenSpec capabilities tied to completion and result interpretation.
+Este cambio cruza frontend (módulo `results`, enrutamiento y contratos de servicios API) y comportamiento de lectura de resultados en backend (forma de consulta y soporte de agregaciones). También impacta capacidades de OpenSpec vinculadas al cierre de ejecución e interpretación de resultados.
 
-Constraints:
-- Preserve current persistence mechanism (JSON durable store) for this iteration.
-- Avoid breaking existing execution runtime automation behavior.
-- Keep review output explainable and minimal for a prototype clinician workflow.
+Restricciones:
+- Preservar el mecanismo de persistencia actual (store JSON durable) en esta iteración.
+- Evitar romper el comportamiento existente de automatización del runtime de ejecución.
+- Mantener la salida de revisión explicable y mínima para un flujo clínico de prototipo.
 
-Stakeholders:
-- Clinician users performing post-session interpretation.
-- Product/QA validating AC-06 and traceability from execution to review.
+Actores involucrados:
+- Usuarios clínicos que realizan interpretación posterior a la sesión.
+- Producto/QA validando AC-06 y la trazabilidad desde ejecución hasta revisión.
 
-## Goals / Non-Goals
+## Objetivos / No objetivos
 
-**Goals:**
-- Deliver an end-to-end clinical review workflow based on real persisted data.
-- Provide session-level review with item details plus basic aggregate indicators.
-- Provide predictable frontend behavior for loading/empty/error/retry states.
-- Align API contracts and tests so review behavior is stable and regression-resistant.
+**Objetivos:**
+- Entregar un flujo end-to-end de revisión clínica basado en datos reales persistidos.
+- Proveer revisión a nivel de sesión con detalle por ítem e indicadores agregados básicos.
+- Proveer comportamiento predecible del frontend para estados de carga/vacío/error/reintento.
+- Alinear contratos API y pruebas para que el comportamiento de revisión sea estable y resistente a regresiones.
 
-**Non-Goals:**
-- Advanced analytics or longitudinal reporting across multiple patients.
-- New storage engine migration (PostgreSQL remains future scope).
-- Full clinical scoring algorithms beyond baseline aggregates required by the prototype.
+**No objetivos:**
+- Analítica avanzada o reportes longitudinales entre múltiples pacientes.
+- Migración a un nuevo motor de almacenamiento (PostgreSQL sigue como alcance futuro).
+- Algoritmos de scoring clínico completos más allá de los agregados baseline requeridos por el prototipo.
 
-## Decisions
+## Decisiones
 
-1. Keep backend read model centered on session-scoped endpoints.
-- Decision: Use and extend `/results/session/:sessionId` as canonical source for item-level review data, and add a lightweight session review summary endpoint if the UI needs aggregate metadata.
-- Rationale: This fits the current data model and avoids premature redesign of persistence.
-- Alternative considered: Introduce a new fully denormalized review API from scratch; rejected due to added complexity and duplication.
+1. Mantener el modelo de lectura de backend centrado en endpoints por sesión.
+- Decisión: Usar y extender `/results/session/:sessionId` como fuente canónica para datos de revisión por ítem, y añadir un endpoint liviano de resumen de revisión por sesión si la interfaz necesita metadatos agregados.
+- Justificación: Encaja con el modelo de datos actual y evita rediseñar prematuramente la persistencia.
+- Alternativa considerada: Introducir desde cero una API de revisión totalmente desnormalizada; descartada por complejidad y duplicación.
 
-2. Build a dedicated frontend review read model in `results` feature.
-- Decision: Replace placeholder `Promise.resolve([])` service behavior with typed HTTP services and view models for list/detail and aggregate cards.
-- Rationale: Keeps UI composition independent from raw transport shapes and improves testability.
-- Alternative considered: Bind components directly to raw API payloads; rejected due to coupling and brittle templates.
+2. Construir un modelo de lectura de revisión dedicado en frontend dentro de `results`.
+- Decisión: Reemplazar el comportamiento de marcador de posición `Promise.resolve([])` por servicios HTTP tipados y modelos de vista para listado/detalle y tarjetas de agregados.
+- Justificación: Mantiene la composición de interfaz independiente de los payloads de transporte y mejora la testabilidad.
+- Alternativa considerada: Vincular componentes directamente a payloads crudos de API; descartada por acoplamiento y templates frágiles.
 
-3. Aggregate metrics are computed deterministically from persisted typed payloads.
-- Decision: Derive baseline aggregate indicators either server-side (preferred when reused) or in a pure shared frontend mapper when endpoint changes are unnecessary.
-- Rationale: Maintains consistency with typed payload baseline and prevents ad hoc UI-only calculations.
-- Alternative considered: Manual per-template calculations in component code; rejected because it is error-prone.
+3. Las métricas agregadas se calculan de forma determinística desde payloads tipados persistidos.
+- Decisión: Derivar indicadores agregados baseline en backend (preferido cuando se reutilizan) o en un mapper puro compartido de frontend cuando no haga falta cambiar endpoints.
+- Justificación: Mantiene consistencia con el baseline de payload tipado y evita cálculos ad hoc solo en interfaz.
+- Alternativa considerada: Cálculos manuales por template en código de componente; descartada por ser propensa a errores.
 
-4. Standardize review state machine at UI level.
-- Decision: Define explicit states (`idle`, `loading`, `ready`, `empty`, `error`) and render per state.
-- Rationale: Eliminates ambiguous behavior and improves user trust.
-- Alternative considered: Implicit state from array lengths and error flags; rejected for maintainability concerns.
+4. Estandarizar la máquina de estados de revisión a nivel de interfaz.
+- Decisión: Definir estados explícitos (`inactivo`, `cargando`, `listo`, `vacío`, `error`) y renderizar por estado.
+- Justificación: Elimina comportamiento ambiguo y mejora la confianza del usuario.
+- Alternativa considerada: Estado implícito por longitud de arreglos y flags de error; descartada por mantenibilidad.
 
-5. Preserve backward compatibility for current execution flow.
-- Decision: Any new backend field for review summary must be additive and optional.
-- Rationale: Existing execution screens already consume result payloads and should remain unaffected.
-- Alternative considered: Replace existing result response shape; rejected due to unnecessary risk.
+5. Preservar compatibilidad hacia atrás del flujo de ejecución actual.
+- Decisión: Cualquier campo nuevo de backend para resumen de revisión debe ser aditivo y opcional.
+- Justificación: Las pantallas actuales de ejecución ya consumen payloads de resultados y deben permanecer sin impacto.
+- Alternativa considerada: Reemplazar la forma actual de respuesta de resultados; descartada por riesgo innecesario.
 
-## Risks / Trade-offs
+## Riesgos / Trade-offs
 
-- [Risk] Aggregate interpretation may be clinically misleading if simplified excessively. -> Mitigation: keep labels explicit as prototype indicators and document formulas in specs.
-- [Risk] Frontend/backend contract drift for typed payloads and aggregates. -> Mitigation: add contract tests for endpoint shape and component mapping tests.
-- [Risk] Increased latency when computing summaries on-demand for large sessions. -> Mitigation: limit current scope to session-level payload sizes and revisit with persistent precomputed summaries later.
-- [Trade-off] Additive endpoint design may keep some payload redundancy. -> Mitigation: accept short-term redundancy to maintain compatibility and reduce migration risk.
+- [Riesgo] La interpretación agregada puede ser clínicamente engañosa si se simplifica en exceso. -> Mitigación: mantener etiquetas explícitas como indicadores de prototipo y documentar fórmulas en specs.
+- [Riesgo] Deriva de contrato frontend/backend para payloads tipados y agregados. -> Mitigación: añadir pruebas de contrato de endpoint y pruebas de mapeo de componentes.
+- [Riesgo] Mayor latencia al calcular resúmenes on-demand para sesiones grandes. -> Mitigación: limitar alcance actual a tamaños de payload de sesión y reevaluar con resúmenes precomputados persistidos en el futuro.
+- [Trade-off] El diseño aditivo de endpoints puede mantener cierta redundancia de payload. -> Mitigación: aceptar redundancia de corto plazo para mantener compatibilidad y reducir riesgo de migración.
 
-## Migration Plan
+## Plan de migración
 
-1. Update OpenSpec delta specs for review workflow, result payload baseline, execution minimum flow, and frontend behavior.
-2. Implement backend additive read-contract changes (if required) and unit tests.
-3. Replace frontend results placeholder service/component with typed API integration and stateful UI.
-4. Add frontend tests for loading/empty/error/ready states and review detail rendering.
-5. Validate end-to-end flow with existing execution output and run full backend/frontend tests.
+1. Actualizar los delta specs de OpenSpec para flujo de revisión, baseline de payload de resultados, flujo mínimo de ejecución y comportamiento de frontend.
+2. Implementar cambios aditivos de contrato de lectura en backend (si aplica) y pruebas unitarias.
+3. Reemplazar servicio/componente de marcador de posición de resultados en frontend por integración API tipada e interfaz con estados.
+4. Añadir pruebas de frontend para estados cargando/vacío/error/listo y render de detalle de revisión.
+5. Validar flujo end-to-end con la salida actual de ejecución y ejecutar pruebas completas de backend/frontend.
 
-Rollback strategy:
-- Revert frontend results module to previous route/module revision.
-- Keep backend additive fields guarded; if rollback required, ignore new fields while preserving original endpoint behavior.
+Estrategia de rollback:
+- Revertir el módulo de resultados de frontend a la revisión previa de rutas/módulo.
+- Mantener protegidos los campos aditivos en backend; si se requiere rollback, ignorar campos nuevos preservando el comportamiento original de endpoints.
 
-## Open Questions
+## Preguntas abiertas
 
-- Should aggregate indicators be persisted during session completion or computed at read time for this iteration?
-- Is pagination needed now for review lists, or can we defer until PostgreSQL migration?
-- Should AC-06 require patient-level grouping in this phase or remain session-focused only?
+- ¿Los indicadores agregados deben persistirse durante el cierre de sesión o calcularse en lectura en esta iteración?
+- ¿Se necesita paginación ahora para listados de revisión, o puede diferirse hasta la migración a PostgreSQL?
+- ¿AC-06 debe exigir agrupación por paciente en esta fase o mantenerse solo a nivel de sesión?

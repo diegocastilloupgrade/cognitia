@@ -1,23 +1,23 @@
-## 1. Backend Review Read Model
+## 1. Modelo de lectura de revisión en backend
 
-- [ ] 1.1 Validar y, si aplica, extender contrato de `GET /results/session/:sessionId` para soporte explícito de revisión clínica.
-- [ ] 1.2 Implementar mapeo deterministico de indicadores agregados baseline reutilizable para revisión.
-- [ ] 1.3 Añadir pruebas de contrato en `backend/src/modules/results` para payload por ítem y agregados de sesión.
+- [x] 1.1 Validar y, si aplica, extender contrato de `GET /results/session/:sessionId` para soporte explícito de revisión clínica.
+- [x] 1.2 Implementar mapeo deterministico de indicadores agregados baseline reutilizable para revisión.
+- [x] 1.3 Añadir pruebas de contrato en `backend/src/modules/results` para payload por ítem y agregados de sesión.
 
-## 2. Frontend Results Integration
+## 2. Integración de resultados en frontend
 
-- [ ] 2.1 Reemplazar servicio placeholder de `results` por servicio HTTP tipado alineado con API real.
-- [ ] 2.2 Implementar view model de revisión (detalle por ítem + agregados) desacoplado del transporte.
-- [ ] 2.3 Actualizar componente de listado/revisión para renderizar datos reales por sesión completada.
+- [x] 2.1 Reemplazar servicio de marcador de posición de `results` por servicio HTTP tipado alineado con API real.
+- [x] 2.2 Implementar modelo de vista de revisión (detalle por ítem + agregados) desacoplado del transporte.
+- [x] 2.3 Actualizar componente de listado/revisión para renderizar datos reales por sesión completada.
 
-## 3. UI States and Filtering
+## 3. Estados de interfaz y filtrado
 
-- [ ] 3.1 Implementar estados de interfaz `loading`, `empty`, `error`, `ready` en la pantalla de revisión.
-- [ ] 3.2 Añadir filtros mínimos por sesión y contexto clínico básico definidos en el spec.
-- [ ] 3.3 Implementar acción de reintento para fallos de consulta de resultados.
+- [x] 3.1 Implementar estados de interfaz `cargando`, `vacío`, `error`, `listo` en la pantalla de revisión.
+- [x] 3.2 Añadir filtros mínimos por sesión y contexto clínico básico definidos en la especificación.
+- [x] 3.3 Implementar acción de reintento para fallos de consulta de resultados.
 
-## 4. Validation and Quality
+## 4. Validación y calidad
 
-- [ ] 4.1 Añadir pruebas de frontend para estados de UI y render de resultados de revisión.
-- [ ] 4.2 Ejecutar pruebas backend/frontend y ajustar regresiones del flujo de ejecución existente.
-- [ ] 4.3 Verificar trazabilidad AC-06 y actualizar evidencias de QA del change.
+- [x] 4.1 Añadir pruebas de frontend para estados de interfaz y render de resultados de revisión.
+- [x] 4.2 Ejecutar pruebas backend/frontend y ajustar regresiones del flujo de ejecución existente.
+- [x] 4.3 Verificar trazabilidad AC-06 y actualizar evidencias de QA del change.
