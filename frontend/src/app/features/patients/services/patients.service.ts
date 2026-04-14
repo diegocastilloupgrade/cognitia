@@ -15,9 +15,13 @@ export interface Patient {
 export interface CreatePatientDto {
   fullName: string;
   birthDate: string;
+  sex?: string;
+  internalCode?: string;
 }
 
-export type UpdatePatientDto = Partial<CreatePatientDto>;
+export interface UpdatePatientDto extends Partial<CreatePatientDto> {
+  active?: boolean;
+}
 
 @Injectable({
   providedIn: 'root'

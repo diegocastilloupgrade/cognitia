@@ -9,7 +9,13 @@ import { PatientsService, UpdatePatientDto } from '../services/patients.service'
 })
 export class PatientEditComponent implements OnInit {
   patientId = 0;
-  form: UpdatePatientDto = { fullName: '', birthDate: '' };
+  form: UpdatePatientDto = {
+    fullName: '',
+    birthDate: '',
+    sex: '',
+    internalCode: '',
+    active: true,
+  };
   loading = false;
   saving = false;
   error: string | null = null;
@@ -33,7 +39,10 @@ export class PatientEditComponent implements OnInit {
       next: (patient) => {
         this.form = {
           fullName: patient.fullName,
-          birthDate: patient.birthDate
+          birthDate: patient.birthDate,
+          sex: patient.sex ?? '',
+          internalCode: patient.internalCode ?? '',
+          active: patient.active,
         };
         this.loading = false;
       },
@@ -56,7 +65,10 @@ export class PatientEditComponent implements OnInit {
     this.patientsService
       .updatePatient(this.patientId, {
         fullName: this.form.fullName.trim(),
-        birthDate: this.form.birthDate
+        birthDate: this.form.birthDate,
+        sex: this.form.sex?.trim() ?? '',
+        internalCode: this.form.internalCode?.trim() ?? '',
+        active: this.form.active ?? true,
       })
       .subscribe({
         next: () => {

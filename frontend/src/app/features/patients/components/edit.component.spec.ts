@@ -20,10 +20,24 @@ describe('PatientEditComponent', () => {
     ]);
 
     patientsService.getPatientById.and.returnValue(
-      of({ id: 1, fullName: 'Paciente Inicial', birthDate: '1990-01-01', active: true }),
+      of({
+        id: 1,
+        fullName: 'Paciente Inicial',
+        birthDate: '1990-01-01',
+        sex: 'F',
+        internalCode: 'PX-001',
+        active: true,
+      }),
     );
     patientsService.updatePatient.and.returnValue(
-      of({ id: 1, fullName: 'Paciente Editado', birthDate: '1990-01-01', active: true }),
+      of({
+        id: 1,
+        fullName: 'Paciente Editado',
+        birthDate: '1990-01-01',
+        sex: 'F',
+        internalCode: 'PX-001',
+        active: false,
+      }),
     );
 
     await TestBed.configureTestingModule({
@@ -56,6 +70,9 @@ describe('PatientEditComponent', () => {
     expect(patientsService.getPatientById).toHaveBeenCalledWith(1);
     expect(component.form.fullName).toBe('Paciente Inicial');
     expect(component.form.birthDate).toBe('1990-01-01');
+    expect(component.form.sex).toBe('F');
+    expect(component.form.internalCode).toBe('PX-001');
+    expect(component.form.active).toBeTrue();
   });
 
   it('submits update and navigates to list', fakeAsync(() => {
@@ -63,11 +80,17 @@ describe('PatientEditComponent', () => {
 
     component.form.fullName = 'Paciente Editado';
     component.form.birthDate = '1991-02-02';
+    component.form.sex = 'M';
+    component.form.internalCode = 'PX-999';
+    component.form.active = false;
     component.onSubmit();
 
     expect(patientsService.updatePatient).toHaveBeenCalledWith(1, {
       fullName: 'Paciente Editado',
       birthDate: '1991-02-02',
+      sex: 'M',
+      internalCode: 'PX-999',
+      active: false,
     });
     expect(component.success).toBe('Paciente actualizado correctamente.');
 
