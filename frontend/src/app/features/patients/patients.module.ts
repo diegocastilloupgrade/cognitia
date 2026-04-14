@@ -4,9 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { PatientsRoutingModule } from './patients-routing.module';
 import { PatientsListComponent } from './components/list.component';
 import { PatientEditComponent } from './components/edit.component';
+import { CreatePatientComponent } from './components/create.component';
 
 @NgModule({
-  declarations: [PatientsListComponent, PatientEditComponent],
+  declarations: [PatientsListComponent, PatientEditComponent, CreatePatientComponent],
   imports: [CommonModule, FormsModule, PatientsRoutingModule]
 })
 export class PatientsModule { }

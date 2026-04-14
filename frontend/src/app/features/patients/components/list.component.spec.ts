@@ -14,7 +14,6 @@ describe('PatientsListComponent', () => {
   beforeEach(async () => {
     patientsService = jasmine.createSpyObj<PatientsService>('PatientsService', [
       'getPatients',
-      'createPatient',
       'deletePatient',
     ]);
 
@@ -23,9 +22,6 @@ describe('PatientsListComponent', () => {
         { id: 1, fullName: 'Paciente A', birthDate: '1990-01-01', active: true },
         { id: 2, fullName: 'Paciente B', birthDate: '1991-02-02', active: true },
       ]),
-    );
-    patientsService.createPatient.and.returnValue(
-      of({ id: 3, fullName: 'Paciente C', birthDate: '1992-03-03', active: true }),
     );
     patientsService.deletePatient.and.returnValue(of(void 0));
 
@@ -45,21 +41,42 @@ describe('PatientsListComponent', () => {
     expect(component.patients.length).toBe(2);
   });
 
-  it('deletes patient and updates list', () => {
-    spyOn(window, 'confirm').and.returnValue(true);
-
+  it('shows inline confirmation on first delete click', () => {
     const patient = component.patients[0];
-    component.onDelete(patient);
+
+    component.askDelete(patient.id);
+
+    expect(component.confirmDeleteId).toBe(patient.id);
+    expect(patientsService.deletePatient).not.toHaveBeenCalled();
+  });
+
+  it('cancels inline confirmation', () => {
+    const patient = component.patients[0];
+    component.askDelete(patient.id);
+
+    component.cancelDelete();
+
+    expect(component.confirmDeleteId).toBeNull();
+    expect(patientsService.deletePatient).not.toHaveBeenCalled();
+  });
+
+  it('confirms delete and updates list', () => {
+    const patient = component.patients[0];
+    component.askDelete(patient.id);
+
+    component.confirmDelete(patient);
 
     expect(patientsService.deletePatient).toHaveBeenCalledWith(patient.id);
     expect(component.patients.find((p) => p.id === patient.id)).toBeUndefined();
+    expect(component.confirmDeleteId).toBeNull();
   });
 
   it('shows conflict error on delete when patient has open sessions', () => {
-    spyOn(window, 'confirm').and.returnValue(true);
     patientsService.deletePatient.and.returnValue(throwError(() => ({ status: 409 })));
 
-    component.onDelete(component.patients[0]);
+    const patient = component.patients[0];
+    component.askDelete(patient.id);
+    component.confirmDelete(patient);
 
     expect(component.error).toBe('No se puede eliminar: el paciente tiene sesiones activas.');
   });

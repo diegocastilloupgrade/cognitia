@@ -1,17 +1,8 @@
 <div class="patients-container">
   <h2>Pacientes</h2>
-
-  <form (ngSubmit)="onSubmit()" #patientForm="ngForm">
-    <label>
-      Nombre completo
-      <input type="text" name="fullName" [(ngModel)]="form.fullName" required />
-    </label>
-    <label>
-      Fecha de nacimiento
-      <input type="date" name="birthDate" [(ngModel)]="form.birthDate" required />
-    </label>
-    <button type="submit" [disabled]="!patientForm.form.valid">Crear paciente</button>
-  </form>
+  <p>
+    <a [routerLink]="['/patients/new']">Nuevo paciente</a>
+  </p>
 
   <p *ngIf="loading">Cargando...</p>
   <p *ngIf="error" class="error">{{ error }}</p>
@@ -34,13 +25,14 @@
         <td>{{ patient.active ? 'Sí' : 'No' }}</td>
         <td>
           <a [routerLink]="['/patients', patient.id, 'edit']">Editar</a>
-          <button
-            type="button"
-            (click)="onDelete(patient)"
-            [disabled]="deletingPatientId === patient.id"
-          >
-            {{ deletingPatientId === patient.id ? 'Eliminando...' : 'Eliminar' }}
-          </button>
+          <ng-container *ngIf="confirmDeleteId !== patient.id; else confirmDeleteTpl">
+            <button type="button" (click)="askDelete(patient.id)">Eliminar</button>
+          </ng-container>
+          <ng-template #confirmDeleteTpl>
+            <span>¿Confirmar?</span>
+            <button type="button" (click)="confirmDelete(patient)">Sí</button>
+            <button type="button" (click)="cancelDelete()">No</button>
+          </ng-template>
         </td>
       </tr>
     </tbody>

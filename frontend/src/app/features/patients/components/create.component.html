@@ -1,11 +1,9 @@
 <div class="patients-container">
-  <h2>Editar paciente</h2>
+  <h2>Nuevo paciente</h2>
 
-  <p *ngIf="loading">Cargando...</p>
   <p *ngIf="error" class="error">{{ error }}</p>
-  <p *ngIf="success" class="success">{{ success }}</p>
 
-  <form *ngIf="!loading" (ngSubmit)="onSubmit()" #editForm="ngForm">
+  <form (ngSubmit)="onSubmit()" #createForm="ngForm">
     <label>
       Nombre completo
       <input type="text" name="fullName" [(ngModel)]="form.fullName" required />
@@ -22,16 +20,12 @@
       Código interno
       <input type="text" name="internalCode" [(ngModel)]="form.internalCode" />
     </label>
-    <label>
-      <input type="checkbox" name="active" [(ngModel)]="form.active" />
-      Paciente activo
-    </label>
 
     <div class="actions">
-      <button type="submit" [disabled]="!editForm.form.valid || saving">
-        {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+      <button type="submit" [disabled]="!createForm.form.valid || saving">
+        {{ saving ? 'Guardando...' : 'Crear paciente' }}
       </button>
-      <button type="button" [disabled]="saving" [routerLink]="['/patients']">Cancelar</button>
+      <button type="button" [disabled]="saving" (click)="onCancel()">Cancelar</button>
     </div>
   </form>
 </div>
