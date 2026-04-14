@@ -33,4 +33,4 @@
 ## 6. Entrega
 
 - [x] 6.1 Ejecutar tests del frontend (`npm test`) y verificar que todos pasan
-- [ ] 6.2 Commit y PR `feature/patients-crud-complete`
+- [x] 6.2 Commit y PR `feature/patients-crud-complete`
