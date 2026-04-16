@@ -167,6 +167,36 @@ export async function completeSession(id: number): Promise<ScreeningSession | nu
   return mapSession(result.rows[0] as Record<string, unknown>);
 }
 
+export async function deleteSession(id: number): Promise<boolean> {
+  const result = await getPostgresPool().query(
+    `DELETE FROM sessions WHERE id = $1`,
+    [id],
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function updateDraftSession(
+  id: number,
+  input: Partial<Pick<CreateSessionDto, "patientId" | "createdByUserId">>
+): Promise<ScreeningSession | null> {
+  const result = await getPostgresPool().query(
+    `UPDATE sessions
+       SET patient_id = COALESCE($2, patient_id),
+           created_by_user_id = COALESCE($3, created_by_user_id)
+     WHERE id = $1
+       AND status = 'BORRADOR'
+     RETURNING id::int AS id, patient_id::int AS patient_id, created_by_user_id, status,
+               started_at::text AS started_at, finished_at::text AS finished_at`,
+    [id, input.patientId ?? null, input.createdByUserId ?? null],
+  );
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  return mapSession(result.rows[0] as Record<string, unknown>);
+}
+
 export async function findSessionsInProgress(): Promise<ScreeningSession[]> {
   const result = await getPostgresPool().query(
     `SELECT id::int AS id, patient_id::int AS patient_id, created_by_user_id, status,

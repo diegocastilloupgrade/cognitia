@@ -1,0 +1,110 @@
+<div class="detail-container">
+  <div class="detail-header">
+    <button class="btn btn-back" (click)="goBack()">← Volver</button>
+    <h2>Detalle de sesión <span *ngIf="session">#{{ session.id }}</span></h2>
+    <span *ngIf="session" [class]="statusClass">{{ statusLabel }}</span>
+  </div>
+
+  <p *ngIf="loading">Cargando...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <div *ngIf="session && !loading" class="detail-body">
+
+    <!-- Session info -->
+    <table class="info-table">
+      <tbody>
+        <tr><th>ID</th><td>{{ session.id }}</td></tr>
+        <tr><th>Paciente ID</th><td>{{ session.patientId }}</td></tr>
+        <tr><th>Usuario ID</th><td>{{ session.createdByUserId }}</td></tr>
+        <tr><th>Estado</th><td><span [class]="statusClass">{{ statusLabel }}</span></td></tr>
+        <tr><th>Inicio</th><td>{{ formatDate(session.startedAt) }}</td></tr>
+        <tr><th>Fin</th><td>{{ formatDate(session.finishedAt) }}</td></tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="session.status === 'BORRADOR'" class="readiness-panel">
+      <h3>Checklist de preparación</h3>
+      <ul>
+        <li [class.ok]="readiness.patientAssigned">Paciente {{ readiness.patientAssigned ? '✓' : '✗' }}</li>
+        <li [class.ok]="readiness.scheduledDate">Fecha programada {{ readiness.scheduledDate ? '✓' : '✗' }}</li>
+        <li [class.ok]="readiness.requiredFields">Campos requeridos {{ readiness.requiredFields ? '✓' : '✗' }}</li>
+        <li [class.ok]="!readiness.alreadyExecuted">No ejecutada previamente {{ !readiness.alreadyExecuted ? '✓' : '✗' }}</li>
+      </ul>
+      <p *ngIf="isReadyForExecution" class="ready-indicator">Listo para ejecutar</p>
+      <p *ngIf="!isReadyForExecution" class="not-ready-indicator">Completa los campos requeridos para continuar.</p>
+    </div>
+
+    <!-- COMPLETADA: completion summary -->
+    <div *ngIf="session.status === 'COMPLETADA'" class="completion-summary">
+      <h3>Resumen de la sesión</h3>
+      <p><strong>Resultados registrados:</strong> {{ loadingResults ? 'Cargando...' : (resultsCount + ' ítems evaluados') }}</p>
+      <p><strong>Iniciada:</strong> {{ formatDate(session.startedAt) }}</p>
+      <p><strong>{{ formatCompletionDate(session.finishedAt) }}</strong></p>
+      <p><strong>Duración:</strong> {{ getDuration() }}</p>
+      <div class="actions">
+        <a [routerLink]="['/execution', session.id]" class="btn btn-primary">Ver resultados</a>
+        <button type="button" class="btn btn-secondary" (click)="onDownloadResults()" [disabled]="archiving">
+          {{ archiving ? 'Descargando...' : 'Descargar resultados' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="onArchiveClick()">Archivar</button>
+      </div>
+    </div>
+
+    <!-- BORRADOR: start action -->
+    <div *ngIf="session.status === 'BORRADOR'" class="actions">
+      <a [routerLink]="['/execution', session.id]" class="btn btn-secondary">Ver ejecución</a>
+      <button
+        class="btn btn-primary"
+        (click)="onStartClick()"
+        [disabled]="transitioning || !isReadyForExecution"
+        [title]="isReadyForExecution ? '' : 'Completa los campos requeridos para continuar'"
+      >
+        {{ transitioning ? 'Iniciando...' : 'Iniciar ejecución' }}
+      </button>
+    </div>
+
+    <!-- EN_EJECUCION: complete action -->
+    <div *ngIf="session.status === 'EN_EJECUCION'" class="actions">
+      <a [routerLink]="['/execution', session.id]" class="btn btn-secondary">Ver ejecución</a>
+      <button
+        class="btn btn-success"
+        (click)="onCompleteClick()"
+        [disabled]="transitioning || !canCompleteSession"
+        [title]="canCompleteSession ? '' : 'Debes registrar resultados antes de completar'"
+      >
+        {{ transitioning ? 'Completando...' : 'Completar sesión' }}
+      </button>
+      <p *ngIf="!loadingResults" class="subtext">
+        {{ resultsCount > 0 ? ('Resultados disponibles: ' + resultsCount) : 'Aún no hay resultados registrados.' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Start confirm modal -->
+  <div *ngIf="showStartConfirm" class="modal-overlay">
+    <div class="modal">
+      <h3>¿Iniciar ejecución de la sesión?</h3>
+      <p>Una vez iniciada, la sesión pasará a estado <strong>En ejecución</strong>.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="onStartCancel()" [disabled]="transitioning">Cancelar</button>
+        <button class="btn btn-primary" (click)="onStartConfirm()" [disabled]="transitioning">
+          {{ transitioning ? 'Iniciando...' : 'Sí, iniciar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complete confirm modal -->
+  <div *ngIf="showCompleteConfirm" class="modal-overlay">
+    <div class="modal">
+      <h3>¿Marcar sesión como completada?</h3>
+      <p>Esta acción no se puede deshacer. La sesión pasará a estado <strong>Completada</strong>.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="onCompleteCancel()" [disabled]="transitioning">Cancelar</button>
+        <button class="btn btn-success" (click)="onCompleteConfirm()" [disabled]="transitioning">
+          {{ transitioning ? 'Completando...' : 'Sí, completar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

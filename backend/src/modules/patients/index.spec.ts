@@ -46,6 +46,22 @@ async function jsonRequest(
   };
 }
 
+async function createResult(baseUrl: string, sessionId: number): Promise<void> {
+  const created = await jsonRequest(baseUrl, `/api/results/session/${sessionId}`, {
+    method: "POST",
+    body: JSON.stringify({
+      itemCode: "3.1",
+      positionInSession: 1,
+      data: {
+        stimulusId: "stim-1",
+        recognizedText: "texto",
+        isCorrect: true,
+      },
+    }),
+  });
+  assert.equal(created.status, 201);
+}
+
 describe("patients module", { concurrency: 1 }, () => {
   test("PATCH /patients/:id updates patient fields", async (t) => {
     await truncateAllTables();
@@ -182,6 +198,8 @@ describe("patients module", { concurrency: 1 }, () => {
       body: JSON.stringify({}),
     });
     assert.equal(started.status, 200);
+
+    await createResult(baseUrl, sessionId);
 
     const completed = await jsonRequest(baseUrl, `/api/sessions/${sessionId}/complete`, {
       method: "POST",

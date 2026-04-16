@@ -20,7 +20,7 @@
   <p *ngIf="loading">Cargando...</p>
   <p *ngIf="error" class="error">{{ error }}</p>
 
-  <table *ngIf="!loading && sessions.length > 0">
+  <table *ngIf="!loading && sessions.length > 0" class="sessions-table">
     <thead>
       <tr>
         <th>ID</th>
@@ -37,10 +37,42 @@
         <td>{{ session.id }}</td>
         <td>{{ session.patientId }}</td>
         <td>{{ session.createdByUserId }}</td>
-        <td>{{ session.status }}</td>
+        <td>
+          <span [class]="statusClass(session.status)">{{ statusLabel(session.status) }}</span>
+        </td>
         <td>{{ session.startedAt ?? '—' }}</td>
         <td>{{ session.finishedAt ?? '—' }}</td>
-        <td><a [routerLink]="['/execution', session.id]">Ver</a></td>
+        <td>
+          <div class="action-buttons" *ngIf="session.status === 'BORRADOR'">
+            <a [routerLink]="['/sessions', session.id]" class="btn btn-secondary">Editar</a>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="onStartSession(session)"
+              [disabled]="startingId === session.id"
+            >
+              {{ startingId === session.id ? 'Iniciando...' : 'Iniciar' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              (click)="onDeleteSession(session)"
+              [disabled]="deletingId === session.id"
+            >
+              {{ deletingId === session.id ? 'Eliminando...' : 'Eliminar' }}
+            </button>
+          </div>
+
+          <div class="action-buttons" *ngIf="session.status === 'EN_EJECUCION'">
+            <a [routerLink]="['/sessions', session.id]" class="btn btn-primary">Ver</a>
+          </div>
+
+          <div class="action-buttons" *ngIf="session.status === 'COMPLETADA'">
+            <a [routerLink]="['/sessions', session.id]" class="btn btn-primary">Ver</a>
+            <button type="button" class="btn btn-secondary" disabled>Archivar</button>
+          </div>
+          <div *ngIf="session.status === 'COMPLETADA'" class="completed-summary">{{ completionSummary(session) }}</div>
+        </td>
       </tr>
     </tbody>
   </table>

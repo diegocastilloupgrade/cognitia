@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SessionsListComponent } from './components/list.component';
+import { SessionDetailComponent } from './components/detail.component';
 
 const routes: Routes = [
   {
@@ -10,6 +11,10 @@ const routes: Routes = [
   {
     path: 'list',
     component: SessionsListComponent
+  },
+  {
+    path: ':id',
+    component: SessionDetailComponent
   }
 ];
 
